@@ -51,12 +51,34 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware to normalize Vercel serverless rewritten paths
 app.use((req, res, next) => {
-    const matched = req.headers['x-matched-path'] || req.headers['x-forwarded-uri'];
-    if (matched) {
-        req.url = matched.split('?')[0];
-    } else if (req.query && req.query.__route) {
-        req.url = '/api/' + req.query.__route;
+    // 1. If req.url is already a valid API route, do not modify it
+    if (req.url && req.url !== '/api/index.js' && req.url !== '/api' && req.url !== '/api/' && !req.url.startsWith('/api/index.js')) {
+        return next();
     }
+
+    // 2. Check x-forwarded-uri (original URI requested by client on Vercel)
+    const fwd = req.headers['x-forwarded-uri'];
+    if (fwd && fwd !== '/api/index.js' && fwd !== '/api' && fwd !== '/api/') {
+        req.url = fwd;
+        return next();
+    }
+
+    // 3. Check query param __route
+    if (req.query && req.query.__route) {
+        req.url = req.query.__route.startsWith('/') ? req.query.__route : '/api/' + req.query.__route;
+        return next();
+    }
+
+    // 4. Check x-matched-path ONLY if it is not /api/index.js
+    const matched = req.headers['x-matched-path'];
+    if (matched) {
+        const cleanMatched = matched.split('?')[0];
+        if (cleanMatched !== '/api/index.js' && cleanMatched !== '/api' && cleanMatched !== '/api/') {
+            req.url = cleanMatched;
+            return next();
+        }
+    }
+
     next();
 });
 

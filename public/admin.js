@@ -24,6 +24,26 @@ function hideLoginOverlay() {
     document.getElementById('adminApp').classList.remove('hidden');
 }
 
+// Helper: Safely fetch and parse JSON with meaningful error handling for non-JSON responses
+async function safeFetchJson(url, options = {}) {
+    const opts = { ...options };
+    opts.headers = { ...opts.headers, 'Accept': 'application/json' };
+
+    const res = await fetch(url, opts);
+    const text = await res.text();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        let msg = `Server returned status ${res.status}`;
+        if (text.includes('Cannot POST') || text.includes('Cannot GET') || text.includes('404') || text.includes('The page could not be found')) {
+            msg = `API route not found (${res.status}). Verify API server is running and routes are configured.`;
+        }
+        throw new Error(msg);
+    }
+    return { ok: res.ok, status: res.status, data };
+}
+
 // ---- Admin Login ----
 async function handleLogin(e) {
     e.preventDefault();
@@ -43,14 +63,13 @@ async function handleLogin(e) {
     loginBtn.textContent = 'Verifying...';
 
     try {
-        const res = await fetch('/api/admin/login', {
+        const { ok, data } = await safeFetchJson('/api/admin/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password })
         });
 
-        const data = await res.json();
-        if (data.success) {
+        if (data && data.success) {
             adminToken = data.token;
             localStorage.setItem('aict_admin_token', adminToken);
             hideLoginOverlay();
@@ -69,13 +88,13 @@ async function handleLogin(e) {
             passwordInput.classList.add('error');
             passwordInput.select();
             if (errorEl) {
-                errorEl.textContent = '❌ ' + (data.message || 'Incorrect admin password. Please try again.');
+                errorEl.textContent = '❌ ' + ((data && data.message) || 'Incorrect admin password. Please try again.');
                 errorEl.classList.add('visible');
             }
             Swal.fire({
                 icon: 'error',
                 title: 'Access Denied',
-                text: data.message || 'Incorrect admin password.',
+                text: (data && data.message) || 'Incorrect admin password.',
                 background: '#1a1f35',
                 color: '#f1f5f9',
             });
@@ -83,13 +102,13 @@ async function handleLogin(e) {
     } catch (err) {
         passwordInput.classList.add('error');
         if (errorEl) {
-            errorEl.textContent = '❌ Server connection failed. Check your internet or backend status.';
+            errorEl.textContent = '❌ ' + err.message;
             errorEl.classList.add('visible');
         }
         Swal.fire({
             icon: 'error',
             title: 'Connection Error',
-            text: 'Could not communicate with the server: ' + err.message,
+            text: err.message,
             background: '#1a1f35',
             color: '#f1f5f9',
         });
@@ -107,10 +126,10 @@ function handleLogout() {
 
 async function verifyAndInitAdmin() {
     try {
-        const res = await fetch('/api/admin/db', {
+        const { ok, data } = await safeFetchJson('/api/admin/db', {
             headers: { 'Authorization': `Bearer ${adminToken}` }
         });
-        if (res.ok) {
+        if (ok && data && data.success) {
             hideLoginOverlay();
             loadAdminData();
         } else {
@@ -124,12 +143,11 @@ async function verifyAndInitAdmin() {
 // ---- Load Admin DB ----
 async function loadAdminData() {
     try {
-        const res = await fetch('/api/admin/db', {
+        const { ok, data } = await safeFetchJson('/api/admin/db', {
             headers: { 'Authorization': `Bearer ${adminToken}` }
         });
-        const data = await res.json();
-        if (data.success) {
-            currentDb = data.data;
+        if (ok && data && data.success) {
+            currentDb = data.data || { groups: [], nextGroupId: 1 };
             if (data.storage) {
                 renderStorageStatus(data.storage);
             }
@@ -323,7 +341,7 @@ async function saveRawJson() {
 
     try {
         const parsed = JSON.parse(rawVal);
-        const res = await fetch('/api/admin/db', {
+        const { ok, data } = await safeFetchJson('/api/admin/db', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -332,8 +350,7 @@ async function saveRawJson() {
             body: JSON.stringify({ rawData: parsed })
         });
 
-        const data = await res.json();
-        if (data.success) {
+        if (data && data.success) {
             Swal.fire({
                 icon: 'success',
                 title: 'Saved!',
@@ -812,29 +829,18 @@ async function handleSaveGroup(e) {
     saveBtn.textContent = 'Saving...';
 
     try {
-        let res;
-        if (editingGroupId) {
-            res = await fetch(`/api/admin/group/${editingGroupId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${adminToken}`
-                },
-                body: JSON.stringify({ groupName, type, members })
-            });
-        } else {
-            res = await fetch('/api/admin/group', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${adminToken}`
-                },
-                body: JSON.stringify({ groupName, type, members })
-            });
-        }
+        const url = editingGroupId ? `/api/admin/group/${editingGroupId}` : '/api/admin/group';
+        const method = editingGroupId ? 'PUT' : 'POST';
+        const { ok, data } = await safeFetchJson(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({ groupName, type, members })
+        });
 
-        const data = await res.json();
-        if (data.success) {
+        if (data && data.success) {
             closeGroupModal();
             loadAdminData();
             Swal.fire({
@@ -963,7 +969,7 @@ async function handleQuickAddMemberSubmit(e) {
     btn.textContent = 'Adding...';
 
     try {
-        const res = await fetch(`/api/admin/group/${groupId}/member`, {
+        const { ok, data } = await safeFetchJson(`/api/admin/group/${groupId}/member`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -972,8 +978,7 @@ async function handleQuickAddMemberSubmit(e) {
             body: JSON.stringify({ name, regNo, whatsapp, role })
         });
 
-        const data = await res.json();
-        if (data.success) {
+        if (data && data.success) {
             closeQuickAddMemberModal();
             loadAdminData();
             Swal.fire({
@@ -1012,12 +1017,11 @@ async function confirmDeleteGroup(id) {
 
     if (result.isConfirmed) {
         try {
-            const res = await fetch(`/api/admin/group/${id}`, {
+            const { ok, data } = await safeFetchJson(`/api/admin/group/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${adminToken}` }
             });
-            const data = await res.json();
-            if (data.success) {
+            if (data && data.success) {
                 loadAdminData();
                 Swal.fire({ icon: 'success', title: 'Deleted', text: data.message, timer: 1500, showConfirmButton: false, background: '#1a1f35', color: '#f1f5f9' });
             }

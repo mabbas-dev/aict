@@ -11,6 +11,26 @@ let currentGroups = [];
 const DEADLINE = new Date('2026-10-13T09:00:00+05:00');
 let isExpired = false;
 
+// Helper: Safely fetch and parse JSON with clear error fallback
+async function safeFetchJson(url, options = {}) {
+    const opts = { ...options };
+    opts.headers = { ...opts.headers, 'Accept': 'application/json' };
+
+    const res = await fetch(url, opts);
+    const text = await res.text();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        let msg = `Server returned status ${res.status}`;
+        if (text.includes('Cannot POST') || text.includes('Cannot GET') || text.includes('404') || text.includes('The page could not be found')) {
+            msg = `API route not found (${res.status}). Verify API server is running.`;
+        }
+        throw new Error(msg);
+    }
+    return { ok: res.ok, status: res.status, data };
+}
+
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', () => {
     createParticles();
@@ -296,9 +316,8 @@ function checkRegNo(input, index) {
 
     checkTimeout = setTimeout(async () => {
         try {
-            const res = await fetch(API_BASE + '/api/check-reg/' + encodeURIComponent(regNo));
-            const data = await res.json();
-            if (data.exists) {
+            const { ok, data } = await safeFetchJson(API_BASE + '/api/check-reg/' + encodeURIComponent(regNo));
+            if (data && data.exists) {
                 input.classList.add('error');
                 errorEl.textContent = 'Already registered in ' + data.groupName + ' (' + data.memberName + ')';
                 errorEl.classList.add('visible');
@@ -388,7 +407,7 @@ async function handleSubmit(event) {
     loader.classList.remove('hidden');
 
     try {
-        const res = await fetch(API_BASE + '/api/register', {
+        const { ok, data } = await safeFetchJson(API_BASE + '/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -397,9 +416,7 @@ async function handleSubmit(event) {
             })
         });
 
-        const data = await res.json();
-
-        if (data.success) {
+        if (data && data.success) {
             goBack();
             loadGroups();
 
@@ -451,10 +468,8 @@ async function handleSubmit(event) {
 // ---- Load Groups ----
 async function loadGroups() {
     try {
-        const res = await fetch(API_BASE + '/api/groups');
-        const data = await res.json();
-
-        if (data.success) {
+        const { ok, data } = await safeFetchJson(API_BASE + '/api/groups');
+        if (data && data.success) {
             currentGroups = data.groups || [];
             renderGroups(currentGroups);
         }
