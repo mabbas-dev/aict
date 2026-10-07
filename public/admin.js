@@ -1,8 +1,8 @@
 /* ============================================
-   PHYSICS LAB ADMIN PORTAL - JAVASCRIPT
+   AICT LAB ADMIN PORTAL - JAVASCRIPT
    ============================================ */
 
-let adminToken = localStorage.getItem('physics_admin_token') || null;
+let adminToken = localStorage.getItem('aict_admin_token') || null;
 let currentDb = { groups: [], nextGroupId: 1 };
 let editingGroupId = null;
 
@@ -52,7 +52,7 @@ async function handleLogin(e) {
         const data = await res.json();
         if (data.success) {
             adminToken = data.token;
-            localStorage.setItem('physics_admin_token', adminToken);
+            localStorage.setItem('aict_admin_token', adminToken);
             hideLoginOverlay();
             loadAdminData();
             Swal.fire({
@@ -100,7 +100,7 @@ async function handleLogin(e) {
 }
 
 function handleLogout() {
-    localStorage.removeItem('physics_admin_token');
+    localStorage.removeItem('aict_admin_token');
     adminToken = null;
     showLoginOverlay();
 }
@@ -247,8 +247,8 @@ function renderAdminGroups() {
         card.className = 'admin-group-card';
         const members = group.members || [];
         const isIndiv = group.type === 'individual';
-        const isFull = members.length >= 5 || isIndiv;
-        const memberCountLabel = isIndiv ? '1 member' : `${members.length}/5 members`;
+        const isFull = members.length >= 3 || isIndiv;
+        const memberCountLabel = isIndiv ? '1 member' : `${members.length}/3 members`;
 
         let rowsHtml = '';
         let hasLeaderAssigned = false;
@@ -276,7 +276,7 @@ function renderAdminGroups() {
                     <span style="font-size:0.78rem;color:#94a3b8;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:10px;">${memberCountLabel}</span>
                 </div>
                 <div class="admin-group-actions">
-                    ${isIndiv ? '<span class="badge-full">Individual (1/1)</span>' : (isFull ? '<span class="badge-full">Full (5/5)</span>' : `<button class="admin-btn-accent-sm" onclick="openQuickAddMember(${group.id}, '${escapeHtml(group.groupName)}')">+ Add Student</button>`)}
+                    ${isIndiv ? '<span class="badge-full">Individual (1/1)</span>' : (isFull ? '<span class="badge-full">Full (3/3)</span>' : `<button class="admin-btn-accent-sm" onclick="openQuickAddMember(${group.id}, '${escapeHtml(group.groupName)}')">+ Add Student</button>`)}
                     <button class="admin-btn-ghost-sm" onclick="openEditGroupModal(${group.id})">Edit</button>
                     <button class="admin-btn-danger" style="padding:6px 12px;font-size:0.8rem;" onclick="confirmDeleteGroup(${group.id})">Delete</button>
                 </div>
@@ -381,7 +381,7 @@ function downloadJsonFile() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentDb, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `physic_lab_db_${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute("download", `aict_lab_db_${new Date().toISOString().slice(0, 10)}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -461,7 +461,7 @@ function handleModalTypeChange() {
             if (removeBtn) removeBtn.style.display = 'none';
         }
     } else {
-        // Team mode: allow 2-5 members
+        // Team mode: allow 2-3 members
         const firstCard = container.querySelector('.admin-member-card');
         if (firstCard) {
             const roleSelect = firstCard.querySelector('.admin-card-role-select');
@@ -500,11 +500,11 @@ function addModalMemberRow(role = 'Member', name = '', regNo = '', whatsapp = ''
         return;
     }
 
-    if (currentCards.length >= 5) {
+    if (currentCards.length >= 3) {
         Swal.fire({
             icon: 'warning',
             title: 'Maximum Reached',
-            text: 'A team can have a maximum of 5 members.',
+            text: 'A team can have a maximum of 3 members.',
             background: '#1a1f35',
             color: '#f1f5f9'
         });
@@ -654,11 +654,11 @@ function updateModalMembersHeader() {
             addBtn.style.display = 'none';
         }
     } else {
-        if (badge) badge.textContent = `${count}/5`;
+        if (badge) badge.textContent = `${count}/3`;
         if (addBtn) {
             addBtn.style.display = 'inline-block';
-            addBtn.disabled = count >= 5;
-            addBtn.style.opacity = count >= 5 ? '0.5' : '1';
+            addBtn.disabled = count >= 3;
+            addBtn.style.opacity = count >= 3 ? '0.5' : '1';
         }
     }
 }
@@ -738,8 +738,8 @@ async function handleSaveGroup(e) {
             return;
         }
     } else {
-        if (cards.length < 2 || cards.length > 5) {
-            Swal.fire({ icon: 'warning', title: 'Invalid Team Size', text: 'A team must have between 2 and 5 members.', background: '#1a1f35', color: '#f1f5f9' });
+        if (cards.length < 2 || cards.length > 3) {
+            Swal.fire({ icon: 'warning', title: 'Invalid Team Size', text: 'A team must have between 2 and 3 members.', background: '#1a1f35', color: '#f1f5f9' });
             return;
         }
     }
@@ -864,11 +864,11 @@ let quickAddCheckTimeout = null;
 
 function openQuickAddMember(groupId, groupName) {
     const group = (currentDb.groups || []).find(g => g.id === groupId);
-    if (group && (group.members || []).length >= 5) {
+    if (group && (group.members || []).length >= 3) {
         Swal.fire({
             icon: 'info',
             title: 'Group is Full',
-            text: `${group.groupName} already has maximum 5 members. Cannot add more.`,
+            text: `${group.groupName} already has maximum 3 members. Cannot add more.`,
             background: '#1a1f35',
             color: '#f1f5f9'
         });
@@ -1099,16 +1099,16 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             </div>
 
             <div class="pdf-meta-box">
-                <p><strong>Course:</strong> Applied Physics (BCS-6101) - Lab</p>
+                <p><strong>Course:</strong> Applications of Information & Communication Technologies (AICT) - Lab</p>
                 <p><strong>Session / Semester / Section:</strong> Fall 2026 | 1st | B (BS Software Engineering)</p>
-                <p><strong>Instructor:</strong> Engr. Jawad Sager, Junior Lecturer</p>
+                <p><strong>Instructor:</strong> Mis Maira, Lab Instructor</p>
                 <p class="pdf-total-line"><strong>Total: ${totalStudents} students in ${groups.length} groups</strong></p>
             </div>
             ` : `
             <div class="pdf-sub-header">
                 <div class="pdf-sub-header-left">
                     <span class="pdf-sub-uni">Ibadat International University Islamabad</span>
-                    <span class="pdf-sub-dept">Department of Software Engineering &bull; Applied Physics Lab</span>
+                    <span class="pdf-sub-dept">Department of Software Engineering &bull; AICT Lab</span>
                 </div>
                 <div class="pdf-sub-header-right">
                     <span>Open-Ended Lab Project Groups</span>
@@ -1132,7 +1132,7 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             </table>
 
             <div class="pdf-footer">
-                <span>Physics Lab Registration System &bull; Fall 2026</span>
+                <span>AICT Lab Registration System &bull; Fall 2026</span>
                 <span>Page ${pageNum} of ${totalPages}</span>
             </div>
         </div>
@@ -1167,7 +1167,7 @@ function generateAndDownloadPDF() {
 
     const opt = {
         margin: [6, 6, 6, 6],
-        filename: `Physics_Lab_Groups_Official_${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename: `AICT_Lab_Groups_Official_${new Date().toISOString().slice(0, 10)}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
             scale: 2,
@@ -1347,7 +1347,7 @@ function generateAndDownloadDOCX() {
                             new Paragraph({
                                 alignment: AlignmentType.RIGHT,
                                 children: [
-                                    new TextRun({ text: 'Physics Lab Registration — Fall 2026 | Page ', size: 16, color: '718096', font: 'Arial' }),
+                                    new TextRun({ text: 'AICT Lab Registration — Fall 2026 | Page ', size: 16, color: '718096', font: 'Arial' }),
                                     new TextRun({ children: [PageNumber.CURRENT], size: 16, color: '718096', font: 'Arial' }),
                                     new TextRun({ text: ' of ', size: 16, color: '718096', font: 'Arial' }),
                                     new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: '718096', font: 'Arial' })
@@ -1376,7 +1376,7 @@ function generateAndDownloadDOCX() {
                         spacing: { after: 40 },
                         children: [
                             new TextRun({ text: 'Course: ', bold: true, size: 19, color: '1B365D', font: 'Arial' }),
-                            new TextRun({ text: 'Applied Physics (BCS-6101) - Lab', size: 19, color: '1B365D', font: 'Arial' })
+                            new TextRun({ text: 'Applications of Information & Communication Technologies (AICT) - Lab', size: 19, color: '1B365D', font: 'Arial' })
                         ]
                     }),
                     new Paragraph({
@@ -1390,7 +1390,7 @@ function generateAndDownloadDOCX() {
                         spacing: { after: 40 },
                         children: [
                             new TextRun({ text: 'Instructor: ', bold: true, size: 19, color: '1B365D', font: 'Arial' }),
-                            new TextRun({ text: 'Engr. Jawad Sager, Junior Lecturer', size: 19, color: '1B365D', font: 'Arial' })
+                            new TextRun({ text: 'Mis Maira, Lab Instructor', size: 19, color: '1B365D', font: 'Arial' })
                         ]
                     }),
                     new Paragraph({
@@ -1409,7 +1409,7 @@ function generateAndDownloadDOCX() {
         });
 
         docx.Packer.toBlob(doc).then(blob => {
-            const fileName = `Physics_Lab_Groups_Official_${new Date().toISOString().slice(0, 10)}.docx`;
+            const fileName = `AICT_Lab_Groups_Official_${new Date().toISOString().slice(0, 10)}.docx`;
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;

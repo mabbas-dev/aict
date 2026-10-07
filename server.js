@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 // Admin password hash (SHA-256 of @@Jhon__mosses12345)
 const ADMIN_PASSWORD_HASH = 'e008eb4d708ba9ad7df3f0369afa77bf12d0713faa201952e2e93e6f49dd88f2';
 // Simple token hash
-const ADMIN_TOKEN_SECRET = 'physics-lab-admin-token-2026';
+const ADMIN_TOKEN_SECRET = 'aict-lab-admin-token-2026';
 
 // Environment & File paths
 const IS_VERCEL = !!process.env.VERCEL;
@@ -21,9 +21,9 @@ const DB_FILE = IS_VERCEL ? path.join('/tmp', 'db.json') : LOCAL_DB_FILE;
 // Hostinger MySQL Configuration (Defaults pre-configured for instant deployment)
 const MYSQL_CONFIG = {
     host: process.env.MYSQL_HOST || 'srv1768.hstgr.io',
-    user: process.env.MYSQL_USER || 'u132832831_physic',
-    password: process.env.MYSQL_PASSWORD || 'D^g+ng22o',
-    database: process.env.MYSQL_DATABASE || 'u132832831_physic',
+    user: process.env.MYSQL_USER || 'u132832831_aict',
+    password: process.env.MYSQL_PASSWORD || 'o3/K94Mgg|:D',
+    database: process.env.MYSQL_DATABASE || 'u132832831_aict',
     port: parseInt(process.env.MYSQL_PORT || '3306'),
     waitForConnections: true,
     connectionLimit: 10,
@@ -315,8 +315,8 @@ app.get(['/api/check-reg/:regNo', '/check-reg/:regNo'], async (req, res) => {
 
 // Register a new group/individual (Public API)
 app.post(['/api/register', '/register'], async (req, res) => {
-    // Check deadline on backend (7 Oct 2026 09:00:00 PKT / UTC+5)
-    const deadline = new Date('2026-10-07T09:00:00+05:00');
+    // Check deadline on backend (13 Oct 2026 09:00:00 PKT / UTC+5)
+    const deadline = new Date('2026-10-13T09:00:00+05:00');
     if (new Date() > deadline) {
         return res.status(403).json({ 
             success: false, 
@@ -330,10 +330,10 @@ app.post(['/api/register', '/register'], async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid data provided.' });
     }
     
-    if (type === 'team' && (members.length < 2 || members.length > 5)) {
+    if (type === 'team' && (members.length < 2 || members.length > 3)) {
         return res.status(400).json({ 
             success: false, 
-            message: 'Team must have minimum 2 and maximum 5 members.' 
+            message: 'Team must have minimum 2 and maximum 3 members.' 
         });
     }
     
@@ -473,8 +473,8 @@ app.post(['/api/admin/group', '/admin/group'], verifyAdminAuth, async (req, res)
         return res.status(400).json({ success: false, message: 'At least 1 member is required.' });
     }
 
-    if (type === 'team' && members.length > 5) {
-        return res.status(400).json({ success: false, message: 'A team can have a maximum of 5 members.' });
+    if (type === 'team' && members.length > 3) {
+        return res.status(400).json({ success: false, message: 'A team can have a maximum of 3 members.' });
     }
 
     // Validate fields and trim
@@ -576,8 +576,8 @@ app.put(['/api/admin/group/:id', '/admin/group/:id'], verifyAdminAuth, async (re
             if (members.length === 0) {
                 return res.status(400).json({ success: false, message: 'At least 1 member is required.' });
             }
-            if (type === 'team' && members.length > 5) {
-                return res.status(400).json({ success: false, message: 'A team can have a maximum of 5 members.' });
+            if (type === 'team' && members.length > 3) {
+                return res.status(400).json({ success: false, message: 'A team can have a maximum of 3 members.' });
             }
 
             // Validate fields and trim
@@ -674,8 +674,8 @@ app.post(['/api/admin/group/:id/member', '/admin/group/:id/member'], verifyAdmin
             return res.status(404).json({ success: false, message: 'Group not found.' });
         }
 
-        if (group.members.length >= 5) {
-            return res.status(400).json({ success: false, message: 'This group already has the maximum 5 members.' });
+        if (group.members.length >= 3) {
+            return res.status(400).json({ success: false, message: 'This group already has the maximum 3 members.' });
         }
 
         for (const g of db.groups) {
@@ -753,7 +753,7 @@ if (require.main === module) {
         app.listen(PORT, () => {
             const storage = getStorageInfo();
             console.log(`\n==============================================`);
-            console.log(`Physics Lab Registration Server is running!`);
+            console.log(`AICT Lab Registration Server is running!`);
             console.log(`Public URL: http://localhost:${PORT}`);
             console.log(`Admin URL:  http://localhost:${PORT}/admin`);
             console.log(`Storage:    ${storage.name} [PERSISTENT]`);

@@ -1,5 +1,5 @@
 /* ============================================
-   PHYSICS LAB REGISTRATION - APPLICATION JS
+   AICT LAB REGISTRATION - APPLICATION JS
    ============================================ */
 
 const API_BASE = '';
@@ -7,8 +7,8 @@ let registrationType = null;
 let memberCount = 0;
 let currentGroups = [];
 
-// Deadline: 7th October 2026, 9:00 AM PKT (UTC+5)
-const DEADLINE = new Date('2026-10-07T09:00:00+05:00');
+// Deadline: 13th October 2026, 9:00 AM PKT (UTC+5)
+const DEADLINE = new Date('2026-10-13T09:00:00+05:00');
 let isExpired = false;
 
 // ---- Initialize ----
@@ -148,7 +148,7 @@ function renderMembers(count, isTeam) {
 }
 
 function addMember() {
-    if (memberCount >= 5) return;
+    if (memberCount >= 3) return;
     const container = document.getElementById('membersContainer');
     addMemberCard(container, false, true);
     updateMemberCountBadge();
@@ -250,13 +250,13 @@ function reindexMembers() {
 
 function updateMemberCountBadge() {
     const badge = document.getElementById('memberCountBadge');
-    badge.textContent = memberCount + '/5';
+    badge.textContent = memberCount + '/3';
 }
 
 function updateAddButton() {
     const btn = document.getElementById('addMemberBtn');
-    btn.disabled = memberCount >= 5;
-    if (memberCount >= 5) {
+    btn.disabled = memberCount >= 3;
+    if (memberCount >= 3) {
         btn.querySelector('.add-icon').textContent = '\u2713';
         btn.childNodes[1].textContent = ' Maximum reached ';
     } else {
@@ -608,16 +608,16 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             </div>
 
             <div class="pdf-meta-box">
-                <p><strong>Course:</strong> Applied Physics (BCS-6101) - Lab</p>
+                <p><strong>Course:</strong> Applications of Information & Communication Technologies (AICT) - Lab</p>
                 <p><strong>Session / Semester / Section:</strong> Fall 2026 | 1st | B (BS Software Engineering)</p>
-                <p><strong>Instructor:</strong> Engr. Jawad Sager, Junior Lecturer</p>
+                <p><strong>Instructor:</strong> Mis Maira, Lab Instructor</p>
                 <p class="pdf-total-line"><strong>Total: ${totalStudents} students in ${groups.length} groups</strong></p>
             </div>
             ` : `
             <div class="pdf-sub-header">
                 <div class="pdf-sub-header-left">
                     <span class="pdf-sub-uni">Ibadat International University Islamabad</span>
-                    <span class="pdf-sub-dept">Department of Software Engineering &bull; Applied Physics Lab</span>
+                    <span class="pdf-sub-dept">Department of Software Engineering &bull; AICT Lab</span>
                 </div>
                 <div class="pdf-sub-header-right">
                     <span>Open-Ended Lab Project Groups</span>
@@ -641,7 +641,7 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             </table>
 
             <div class="pdf-footer">
-                <span>Physics Lab Registration System &bull; Fall 2026</span>
+                <span>AICT Lab Registration System &bull; Fall 2026</span>
                 <span>Page ${pageNum} of ${totalPages}</span>
             </div>
         </div>
@@ -681,7 +681,7 @@ function generateAndDownloadPDF() {
 
     const opt = {
         margin: [6, 6, 6, 6],
-        filename: `Physics_Lab_Groups_Fall_2026_${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename: `AICT_Lab_Groups_Fall_2026_${new Date().toISOString().slice(0, 10)}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
             scale: 2,
@@ -712,7 +712,7 @@ function generateAndDownloadPDF() {
         Swal.fire({
             icon: 'success',
             title: 'PDF Downloaded!',
-            text: 'Your official Physics Lab Project Groups PDF has been saved.',
+            text: 'Your official AICT Lab Project Groups PDF has been saved.',
             timer: 2500,
             showConfirmButton: false,
             background: '#1a1f35',

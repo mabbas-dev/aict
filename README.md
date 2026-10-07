@@ -1,19 +1,21 @@
-# Physics Lab Group Registration System — Fall 2026
+# AICT Lab Group Registration System — Fall 2026
 
+**Course:** Applications of Information & Communication Technologies (AICT) - Lab  
 **Department:** BS Software Engineering  
-**Instructor:** Engr. Jawad Sager  
+**Instructor:** Mis Maira (Lab Instructor)  
 **Institution:** Ibadat International University Islamabad (IIUI)  
 **Developed by:** CR. M ABBAS  
 
 ## Features
-- **Individual & Team Registration:** Register as an individual (1 person) or a team (2 to 5 members).
-- **Group Labeling:** Automatically assigns groups as G-1, G-2, G-3, etc.
+- **Individual & Team Registration:** Register as an individual (1 person) or a team (2 to 3 members including team leader).
+- **Group Labeling:** Automatically assigns groups as G-01, G-02, G-03, etc.
 - **Duplicate Prevention:** Live check and backend validation preventing students from registering in multiple groups.
-- **Countdown Timer:** Live countdown to the deadline (7th Oct 2026, 9:00 AM PKT) with auto-locking.
-- **Welcome Notice:** Popup reminder with class rules.
+- **Countdown Timer:** Live countdown to the deadline (13th Oct 2026, 9:00 AM PKT) with auto-locking.
+- **Welcome Notice:** Popup reminder with class guidelines and rules.
 - **Crown Badge:** Crown indicator on team leaders in group cards.
-- **SweetAlert2 Notifications:** Clean modal alerts on successful registration.
-- **Vercel & Node.js Ready:** Configured for instant deployment to Vercel or running locally.
+- **Export Reports:** One-click download of official formatted PDF and MS Word (.docx) project group sheets.
+- **Hostinger MySQL & Vercel Ready:** Persistent storage backed by Hostinger MySQL database.
+- **Admin Control Panel:** Dedicated password-protected `/admin` dashboard with real-time editing, student search, and group management.
 
 ## Local Setup
 ```bash
@@ -21,19 +23,10 @@ npm install
 npm start
 ```
 Open `http://localhost:3000` in your browser.
+Open `http://localhost:3000/admin` for the admin portal.
 
-## Vercel Deployment & Permanent Database Setup
-
-On Vercel Serverless, local disk storage (`/tmp`) is ephemeral and resets during cold starts. To keep student registrations permanently saved:
-
-### 1-Click Vercel KV Setup (Recommended - 100% Free):
-1. Open your project on [vercel.com](https://vercel.com/dashboard).
-2. Go to the **Storage** tab at the top.
-3. Click **Create** or **Connect Store** → Select **KV**.
-4. Click **Create & Connect**. Vercel will automatically connect `KV_REST_API_URL` and `KV_REST_API_TOKEN` to your project!
-
-### Alternative: Free Upstash Redis:
-1. Create a free database on [upstash.com](https://upstash.com).
-2. Under the **REST API** section, copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
-3. Add them under Vercel → **Project Settings** → **Environment Variables**, then redeploy.
-
+## Database Configuration
+The application is pre-configured to connect to Hostinger MySQL:
+- **Host:** `srv1768.hstgr.io`
+- **Database:** `u132832831_aict`
+- **Username:** `u132832831_aict`

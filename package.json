@@ -1,7 +1,7 @@
 {
-  "name": "physics-lab-registration",
+  "name": "aict-lab-registration",
   "version": "1.0.0",
-  "description": "Physics Lab Group Registration System - Fall 2026",
+  "description": "AICT Lab Group Registration System - Fall 2026",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
