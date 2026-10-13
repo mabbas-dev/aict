@@ -141,9 +141,15 @@ async function ensureMySQLTables() {
         await dbPool.query(`
             CREATE TABLE IF NOT EXISTS app_meta (
                 meta_key VARCHAR(50) PRIMARY KEY,
-                meta_value TEXT NOT NULL
+                meta_value MEDIUMTEXT NOT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+
+        try {
+            await dbPool.query(`ALTER TABLE app_meta MODIFY COLUMN meta_value MEDIUMTEXT NOT NULL;`);
+        } catch (e) {
+            // ignore if already mediumtext
+        }
     } catch (err) {
         console.error('MySQL table verification error:', err.message);
     }
