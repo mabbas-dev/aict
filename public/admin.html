@@ -50,8 +50,8 @@
             <div class="admin-nav-left">
                 <img src="iiui_logo.jpeg" alt="IIUI Logo" class="admin-logo">
                 <div>
-                    <h1 class="admin-brand-title">AICT LAB ADMIN</h1>
-                    <p class="admin-brand-sub">Fall 2026 | Instructor: Mis Maira (Lab Instructor)</p>
+                    <h1 class="admin-brand-title" id="adminBrandTitle">AICT LAB ADMIN</h1>
+                    <p class="admin-brand-sub" id="adminBrandSub">Fall 2026 | Instructor: Mis Maira (Lab Instructor)</p>
                 </div>
             </div>
             <div class="admin-nav-right">
@@ -94,8 +94,8 @@
             <!-- Action Toolbar -->
             <div class="admin-toolbar">
                 <div class="admin-tab-buttons">
-                    <button class="admin-tab-btn active" id="tabGroupsBtn" onclick="switchTab('groups')">Groups
-                        Management</button>
+                    <button class="admin-tab-btn active" id="tabGroupsBtn" onclick="switchTab('groups')">Groups Management</button>
+                    <button class="admin-tab-btn" id="tabSettingsBtn" onclick="switchTab('settings')">⚙️ System Settings</button>
                     <button class="admin-tab-btn" id="tabJsonBtn" onclick="switchTab('json')">Raw JSON Database</button>
                 </div>
                 <div class="admin-quick-actions">
@@ -120,7 +120,232 @@
                 </div>
             </section>
 
-            <!-- TAB 2: Raw JSON Editor -->
+            <!-- TAB 2: System Settings -->
+            <section class="admin-tab-content hidden" id="tabSettingsContent">
+                <div class="settings-container">
+                    <!-- Top Settings Header Bar -->
+                    <div class="settings-top-header">
+                        <div>
+                            <div class="settings-title-row">
+                                <h2 class="settings-main-title">⚙️ System & Registration Settings</h2>
+                                <span class="settings-status-pill" id="settingsStatusBadge">Loading...</span>
+                            </div>
+                            <p class="settings-main-sub">
+                                Control registration deadlines, group member limits, instructor info, class name, and course details in real-time.
+                            </p>
+                        </div>
+                        <div class="settings-top-actions">
+                            <button type="button" class="admin-btn-ghost" onclick="resetSettingsForm()">↺ Reset</button>
+                            <button type="button" class="admin-btn-primary" id="topSaveSettingsBtn" onclick="handleSaveSettings()">
+                                💾 Save Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Settings Grid -->
+                    <form id="adminSettingsForm" onsubmit="event.preventDefault(); handleSaveSettings();">
+                        <div class="settings-grid">
+                            <!-- Card 1: Registration Window & Deadlines -->
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-icon">🕒</div>
+                                    <div>
+                                        <h3>Registration Window & Status</h3>
+                                        <p>Control when students can register groups.</p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="settings-field-group">
+                                        <label for="setRegistrationStatus">Registration Status Mode</label>
+                                        <select id="setRegistrationStatus" class="settings-input" onchange="updateSettingsStatusPreview()">
+                                            <option value="auto">⏳ Auto (Controlled by Deadline)</option>
+                                            <option value="open">🟢 Force Open (Always Accept Submissions)</option>
+                                            <option value="closed">🔴 Force Closed (Lock & Stop Submissions)</option>
+                                        </select>
+                                        <span class="settings-hint">Select "Auto" to follow countdown timer, or force open/closed anytime.</span>
+                                    </div>
+
+                                    <div class="settings-field-group">
+                                        <label for="setDeadline">Registration Deadline (Date & Time)</label>
+                                        <input type="datetime-local" id="setDeadline" class="settings-input" onchange="updateSettingsStatusPreview()">
+                                        <div class="settings-quick-presets">
+                                            <span class="preset-label">Quick Presets:</span>
+                                            <button type="button" class="preset-pill" onclick="quickSetDeadline(1)">+1 Day</button>
+                                            <button type="button" class="preset-pill" onclick="quickSetDeadline(3)">+3 Days</button>
+                                            <button type="button" class="preset-pill" onclick="quickSetDeadline(7)">+1 Week</button>
+                                            <button type="button" class="preset-pill" onclick="quickSetDeadline(30)">+1 Month</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-field-group">
+                                        <label for="setGroupPrefix">Group ID Prefix</label>
+                                        <input type="text" id="setGroupPrefix" class="settings-input" placeholder="e.g. G-">
+                                        <span class="settings-hint">Format prefix for group names (e.g. "G-" creates G-01, G-02).</span>
+                                    </div>
+
+                                    <!-- Live Status Banner -->
+                                    <div class="settings-preview-banner" id="settingsStatusPreview">
+                                        <!-- Dynamic preview filled by JS -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Group Member Rules & Limits -->
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-icon">👥</div>
+                                    <div>
+                                        <h3>Group Member Rules & Limits</h3>
+                                        <p>Set team size constraints and individual permissions.</p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="settings-row-2col">
+                                        <div class="settings-field-group">
+                                            <label for="setMinMembers">Minimum Members per Team</label>
+                                            <input type="number" id="setMinMembers" class="settings-input" min="1" max="10" value="2">
+                                            <span class="settings-hint">Fewest members allowed per team (Default: 2).</span>
+                                        </div>
+                                        <div class="settings-field-group">
+                                            <label for="setMaxMembers">Maximum Members per Team</label>
+                                            <input type="number" id="setMaxMembers" class="settings-input" min="1" max="15" value="3">
+                                            <span class="settings-hint">Highest members allowed per team (Default: 3).</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-toggle-box">
+                                        <div class="toggle-info">
+                                            <strong>Allow Individual Registrations</strong>
+                                            <p>Permit 1-student solo groups without a team.</p>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="setAllowIndividual" checked>
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="settings-info-callout">
+                                        <span class="callout-icon">💡</span>
+                                        <span>Changes automatically apply to both the public student form and the admin group builder.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: Instructor & Faculty Details -->
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-icon">👨‍🏫</div>
+                                    <div>
+                                        <h3>Instructor & Faculty Details</h3>
+                                        <p>Teacher name and title displayed across portals and reports.</p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="settings-field-group">
+                                        <label for="setInstructorName">Instructor / Teacher Name</label>
+                                        <input type="text" id="setInstructorName" class="settings-input" placeholder="e.g. Mis Maira">
+                                        <span class="settings-hint">Primary instructor name shown to students and on reports.</span>
+                                    </div>
+
+                                    <div class="settings-field-group">
+                                        <label for="setInstructorTitle">Instructor Title / Designation</label>
+                                        <input type="text" id="setInstructorTitle" class="settings-input" placeholder="e.g. Lab Instructor">
+                                        <span class="settings-hint">Designation (e.g. Lab Instructor, Lecturer, Assistant Professor).</span>
+                                    </div>
+
+                                    <div class="settings-field-group">
+                                        <label for="setCrName">Class Representative (CR) Name</label>
+                                        <input type="text" id="setCrName" class="settings-input" placeholder="e.g. M ABBAS">
+                                        <span class="settings-hint">CR signature shown in the welcome announcement notice.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: Class, Program & University -->
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-icon">🎓</div>
+                                    <div>
+                                        <h3>Class, Program & University</h3>
+                                        <p>Customize academic headers, class name, and university titles.</p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="settings-row-2col">
+                                        <div class="settings-field-group">
+                                            <label for="setCourseName">Course Title (Header)</label>
+                                            <input type="text" id="setCourseName" class="settings-input" placeholder="e.g. AICT LAB — FALL 2026">
+                                        </div>
+                                        <div class="settings-field-group">
+                                            <label for="setClassName">Class / Degree Name</label>
+                                            <input type="text" id="setClassName" class="settings-input" placeholder="e.g. BS SOFTWARE ENGINEERING">
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-field-group">
+                                        <label for="setCourseFullName">Full Course Title (Reports)</label>
+                                        <input type="text" id="setCourseFullName" class="settings-input" placeholder="e.g. Applications of Information & Communication Technologies (AICT) - Lab">
+                                    </div>
+
+                                    <div class="settings-row-2col">
+                                        <div class="settings-field-group">
+                                            <label for="setDepartmentName">Department Name</label>
+                                            <input type="text" id="setDepartmentName" class="settings-input" placeholder="e.g. Department of Software Engineering">
+                                        </div>
+                                        <div class="settings-field-group">
+                                            <label for="setSessionSemesterSection">Session / Semester / Section</label>
+                                            <input type="text" id="setSessionSemesterSection" class="settings-input" placeholder="e.g. Fall 2026 | 1st | B (BS Software Engineering)">
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-field-group">
+                                        <label for="setUniversityName">University / Institution Name</label>
+                                        <input type="text" id="setUniversityName" class="settings-input" placeholder="e.g. Ibadat International University Islamabad">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 5: Announcements & Student Notice -->
+                            <div class="settings-card full-width-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-icon">📢</div>
+                                    <div>
+                                        <h3>Announcements & Student Notice</h3>
+                                        <p>Rules and important notes shown on the student portal welcome popup.</p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="settings-row-2col">
+                                        <div class="settings-field-group">
+                                            <label for="setAnnouncementNote">Important Notice / Revision Policy</label>
+                                            <textarea id="setAnnouncementNote" rows="2" class="settings-textarea" placeholder="e.g. The final revision of groups is made by the instructor."></textarea>
+                                        </div>
+                                        <div class="settings-field-group">
+                                            <label for="setGoodLuckNote">Good Luck Banner Message</label>
+                                            <input type="text" id="setGoodLuckNote" class="settings-input" placeholder="e.g. GOOD LUCK FOR YOUR LABS!">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sticky Bottom Bar -->
+                        <div class="settings-bottom-bar">
+                            <div class="settings-bottom-status" id="settingsBottomStatus">
+                                <span>All changes immediately update the student portal and PDF/Word report generator.</span>
+                            </div>
+                            <div class="settings-bottom-buttons">
+                                <button type="button" class="admin-btn-ghost" onclick="resetSettingsForm()">↺ Reset</button>
+                                <button type="button" class="admin-btn-primary" id="bottomSaveSettingsBtn" onclick="handleSaveSettings()">
+                                    💾 Save System Settings
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 3: Raw JSON Editor -->
             <section class="admin-tab-content hidden" id="tabJsonContent">
                 <div class="admin-json-card">
                     <div class="json-header">

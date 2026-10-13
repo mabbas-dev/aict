@@ -1,4 +1,286 @@
 {
-  "groups": [],
-  "nextGroupId": 1
+  "groups": [
+    {
+      "id": 1,
+      "groupName": "G-01",
+      "type": "individual",
+      "members": [
+        {
+          "name": "Ali Hussnain",
+          "regNo": "5112326001",
+          "whatsapp": "03295475387",
+          "role": "Team Leader"
+        }
+      ],
+      "registeredAt": "2026-10-07T06:44:46.288Z"
+    },
+    {
+      "id": 2,
+      "groupName": "G-02",
+      "type": "team",
+      "members": [
+        {
+          "name": "Laiba Riaz",
+          "regNo": "5112326008",
+          "whatsapp": "03158416212",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Fatima Zaheer",
+          "regNo": "5112326044",
+          "whatsapp": "03095361659",
+          "role": "Member"
+        },
+        {
+          "name": "Reja Nabeel",
+          "regNo": "5112326049",
+          "whatsapp": "03401400777",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-07T10:18:35.434Z"
+    },
+    {
+      "id": 3,
+      "groupName": "G-03",
+      "type": "individual",
+      "members": [
+        {
+          "name": "Muhammad Abbas",
+          "regNo": "5112326015",
+          "whatsapp": "03146402311",
+          "role": "Team Leader"
+        }
+      ],
+      "registeredAt": "2026-10-07T10:22:58.141Z"
+    },
+    {
+      "id": 4,
+      "groupName": "G-04",
+      "type": "team",
+      "members": [
+        {
+          "name": "Arbaz Masood Kiyani",
+          "regNo": "5112326014",
+          "whatsapp": "0342 5295155",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Wardah Fahim",
+          "regNo": "5112326018",
+          "whatsapp": "03359479089",
+          "role": "Member"
+        },
+        {
+          "name": "Aman Sajid",
+          "regNo": "5112326012",
+          "whatsapp": "0318 2421084",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-10T08:12:08.794Z"
+    },
+    {
+      "id": 5,
+      "groupName": "G-05",
+      "type": "individual",
+      "members": [
+        {
+          "name": "Muhammad Saim",
+          "regNo": "5112326037",
+          "whatsapp": "03322420260",
+          "role": "Team Leader"
+        }
+      ],
+      "registeredAt": "2026-10-12T06:17:18.265Z"
+    },
+    {
+      "id": 6,
+      "groupName": "G-06",
+      "type": "individual",
+      "members": [
+        {
+          "name": "Umar Naseer",
+          "regNo": "5112326034",
+          "whatsapp": "03400912999",
+          "role": "Team Leader"
+        }
+      ],
+      "registeredAt": "2026-10-12T06:19:01.967Z"
+    },
+    {
+      "id": 7,
+      "groupName": "G-07",
+      "type": "team",
+      "members": [
+        {
+          "name": "Tayyab Nisar",
+          "regNo": "5112326036",
+          "whatsapp": "0348 5842786",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Fahad Ibrar",
+          "regNo": "5112326026",
+          "whatsapp": "03425187976",
+          "role": "Member"
+        },
+        {
+          "name": "Mobeen Ashraf",
+          "regNo": "5112326029",
+          "whatsapp": "0341 8991116",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-12T12:25:31.363Z"
+    },
+    {
+      "id": 8,
+      "groupName": "G-08",
+      "type": "team",
+      "members": [
+        {
+          "name": "Tehreem Fatima",
+          "regNo": "5112326003",
+          "whatsapp": "+923331585510",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Momina Khalique",
+          "regNo": "5112326055",
+          "whatsapp": "+923153353113",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-12T13:05:11.785Z"
+    },
+    {
+      "id": 9,
+      "groupName": "G-09",
+      "type": "team",
+      "members": [
+        {
+          "name": "Muhammad Bilal Hussain",
+          "regNo": "5112326043",
+          "whatsapp": "03025713682",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Muhammad Akmal Shahid",
+          "regNo": "5112326004",
+          "whatsapp": "0305 1873834",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-12T16:20:58.355Z"
+    },
+    {
+      "id": 10,
+      "groupName": "G-10",
+      "type": "team",
+      "members": [
+        {
+          "name": "Fatima hidayat",
+          "regNo": "5112326048",
+          "whatsapp": "03023501830",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Rameesha shakeel",
+          "regNo": "5112326173",
+          "whatsapp": "+92 370 5830587",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-13T01:41:22.552Z"
+    },
+    {
+      "id": 11,
+      "groupName": "G-11",
+      "type": "team",
+      "members": [
+        {
+          "name": "Musadiq Hussain",
+          "regNo": "5112326038",
+          "whatsapp": "03495324101",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Muhammad Nawaz",
+          "regNo": "5112326041",
+          "whatsapp": "03325441675",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-13T02:25:21.242Z"
+    },
+    {
+      "id": 12,
+      "groupName": "G-12",
+      "type": "individual",
+      "members": [
+        {
+          "name": "Chaudhary Haider Ali",
+          "regNo": "5112326167",
+          "whatsapp": "03103125813",
+          "role": "Team Leader"
+        }
+      ],
+      "registeredAt": "2026-10-13T02:53:08.351Z"
+    },
+    {
+      "id": 13,
+      "groupName": "G-13",
+      "type": "team",
+      "members": [
+        {
+          "name": "Jaweria Sagheer",
+          "regNo": "5112326027",
+          "whatsapp": "03154634882",
+          "role": "Team Leader"
+        },
+        {
+          "name": "EMAN Fatima",
+          "regNo": "5112326025",
+          "whatsapp": "03259958798",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-13T02:53:55.488Z"
+    },
+    {
+      "id": 14,
+      "groupName": "G-14",
+      "type": "individual",
+      "members": [
+        {
+          "name": "Eman Fatima",
+          "regNo": "51123260025",
+          "whatsapp": "03259958798",
+          "role": "Team Leader"
+        }
+      ],
+      "registeredAt": "2026-10-13T03:45:52.416Z"
+    }
+  ],
+  "nextGroupId": 15,
+  "settings": {
+    "courseName": "AICT LAB — FALL 2026",
+    "courseFullName": "Applications of Information & Communication Technologies (AICT) - Lab",
+    "className": "BS SOFTWARE ENGINEERING",
+    "departmentName": "Department of Software Engineering",
+    "universityName": "Ibadat International University Islamabad",
+    "sessionSemesterSection": "Fall 2026 | 1st | B (BS Software Engineering)",
+    "instructorName": "Mis Maira",
+    "instructorTitle": "Lab Instructor",
+    "crName": "M ABBAS",
+    "deadline": "2026-10-13T09:00:00+05:00",
+    "registrationStatus": "auto",
+    "minMembers": 2,
+    "maxMembers": 3,
+    "allowIndividual": true,
+    "groupPrefix": "G-",
+    "announcementNote": "The final revision of groups is made by the instructor.",
+    "goodLuckNote": "GOOD LUCK FOR YOUR LABS!"
+  }
 }

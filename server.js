@@ -44,6 +44,27 @@ let memoryCache = null;
 let lastCacheTime = 0;
 const CACHE_TTL_MS = 2000; // 2 seconds cache
 
+// Default System & Course Configuration (Customizable via Admin Panel)
+const DEFAULT_SETTINGS = {
+    courseName: "AICT LAB — FALL 2026",
+    courseFullName: "Applications of Information & Communication Technologies (AICT) - Lab",
+    className: "BS SOFTWARE ENGINEERING",
+    departmentName: "Department of Software Engineering",
+    universityName: "Ibadat International University Islamabad",
+    sessionSemesterSection: "Fall 2026 | 1st | B (BS Software Engineering)",
+    instructorName: "Mis Maira",
+    instructorTitle: "Lab Instructor",
+    crName: "M ABBAS",
+    deadline: "2026-10-13T09:00:00+05:00",
+    registrationStatus: "auto", // "auto" | "open" | "closed"
+    minMembers: 2,
+    maxMembers: 3,
+    allowIndividual: true,
+    groupPrefix: "G-",
+    announcementNote: "The final revision of groups is made by the instructor.",
+    goodLuckNote: "GOOD LUCK FOR YOUR LABS!"
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -132,7 +153,7 @@ async function readDBFromMySQL() {
     if (!dbPool) return null;
     const [groupRows] = await dbPool.query('SELECT * FROM app_groups ORDER BY id ASC');
     const [memberRows] = await dbPool.query('SELECT * FROM app_members ORDER BY group_id ASC, id ASC');
-    const [metaRows] = await dbPool.query('SELECT meta_value FROM app_meta WHERE meta_key = "nextGroupId"');
+    const [metaRows] = await dbPool.query('SELECT meta_key, meta_value FROM app_meta');
 
     const membersByGroup = {};
     for (const m of memberRows) {
@@ -153,13 +174,29 @@ async function readDBFromMySQL() {
         registeredAt: g.registered_at
     }));
 
-    let nextGroupId = metaRows.length > 0 ? parseInt(metaRows[0].meta_value) : null;
+    let nextGroupId = null;
+    let settings = { ...DEFAULT_SETTINGS };
+
+    for (const row of metaRows) {
+        if (row.meta_key === 'nextGroupId') {
+            const parsed = parseInt(row.meta_value);
+            if (!isNaN(parsed)) nextGroupId = parsed;
+        } else if (row.meta_key === 'settings' || row.meta_key === 'system_settings') {
+            try {
+                const parsed = JSON.parse(row.meta_value);
+                settings = { ...DEFAULT_SETTINGS, ...parsed };
+            } catch (e) {
+                console.error('MySQL parse settings error:', e.message);
+            }
+        }
+    }
+
     if (!nextGroupId || isNaN(nextGroupId)) {
         const maxId = groups.reduce((max, g) => Math.max(max, g.id), 0);
         nextGroupId = maxId + 1;
     }
 
-    return { groups, nextGroupId };
+    return { groups, nextGroupId, settings };
 }
 
 async function writeDBToMySQL(data) {
@@ -183,9 +220,16 @@ async function writeDBToMySQL(data) {
             }
         }
 
+        const nextIdVal = String(data.nextGroupId || 1);
         await conn.query(
             'INSERT INTO app_meta (meta_key, meta_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE meta_value = ?',
-            ['nextGroupId', String(data.nextGroupId || 1), String(data.nextGroupId || 1)]
+            ['nextGroupId', nextIdVal, nextIdVal]
+        );
+
+        const settingsVal = JSON.stringify(data.settings || DEFAULT_SETTINGS);
+        await conn.query(
+            'INSERT INTO app_meta (meta_key, meta_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE meta_value = ?',
+            ['settings', settingsVal, settingsVal]
         );
 
         await conn.commit();
@@ -218,6 +262,7 @@ async function readDB() {
         try {
             const sqlData = await readDBFromMySQL();
             if (sqlData) {
+                if (!sqlData.settings) sqlData.settings = { ...DEFAULT_SETTINGS };
                 memoryCache = sqlData;
                 lastCacheTime = now;
                 syncLocalFile(sqlData);
@@ -231,21 +276,27 @@ async function readDB() {
     // 2. Fallback: Local JSON file
     try {
         if (!fs.existsSync(DB_FILE)) {
-            const initialData = { groups: [], nextGroupId: 1 };
+            const initialData = { groups: [], nextGroupId: 1, settings: { ...DEFAULT_SETTINGS } };
             fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
             return initialData;
         }
         const content = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(content);
+        parsed.settings = { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) };
         memoryCache = parsed;
         lastCacheTime = now;
         return parsed;
     } catch (e) {
-        return { groups: [], nextGroupId: 1 };
+        return { groups: [], nextGroupId: 1, settings: { ...DEFAULT_SETTINGS } };
     }
 }
 
 async function writeDB(data) {
+    if (!data.settings) {
+        data.settings = { ...DEFAULT_SETTINGS };
+    } else {
+        data.settings = { ...DEFAULT_SETTINGS, ...data.settings };
+    }
     memoryCache = data;
     lastCacheTime = Date.now();
 
@@ -303,9 +354,24 @@ function verifyAdminAuth(req, res, next) {
 app.get(['/api/groups', '/groups'], async (req, res) => {
     try {
         const db = await readDB();
-        res.json({ success: true, groups: db.groups, nextGroupId: db.nextGroupId });
+        res.json({
+            success: true,
+            groups: db.groups,
+            nextGroupId: db.nextGroupId,
+            settings: db.settings || DEFAULT_SETTINGS
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Failed to read database.' });
+    }
+});
+
+// GET current system settings (Public API)
+app.get(['/api/settings', '/settings'], async (req, res) => {
+    try {
+        const db = await readDB();
+        res.json({ success: true, settings: db.settings || DEFAULT_SETTINGS });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Failed to read settings.' });
     }
 });
 
@@ -337,58 +403,82 @@ app.get(['/api/check-reg/:regNo', '/check-reg/:regNo'], async (req, res) => {
 
 // Register a new group/individual (Public API)
 app.post(['/api/register', '/register'], async (req, res) => {
-    // Check deadline on backend (13 Oct 2026 09:00:00 PKT / UTC+5)
-    const deadline = new Date('2026-10-13T09:00:00+05:00');
-    if (new Date() > deadline) {
-        return res.status(403).json({ 
-            success: false, 
-            message: 'Registration deadline has passed. Please contact CR or instructor.' 
-        });
-    }
-
-    const { type, members } = req.body;
-    
-    if (!type || !members || !Array.isArray(members) || members.length === 0) {
-        return res.status(400).json({ success: false, message: 'Invalid data provided.' });
-    }
-    
-    if (type === 'team' && (members.length < 2 || members.length > 3)) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Team must have minimum 2 and maximum 3 members.' 
-        });
-    }
-    
-    if (type === 'individual' && members.length !== 1) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Individual registration must have exactly 1 member.' 
-        });
-    }
-    
-    for (const member of members) {
-        if (!member.name || !member.regNo || !member.whatsapp) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'All fields (Name, Reg No, WhatsApp No) are required for every member.' 
-            });
-        }
-        member.name = member.name.trim();
-        member.regNo = member.regNo.trim().toUpperCase();
-        member.whatsapp = member.whatsapp.trim();
-    }
-    
-    const regNos = members.map(m => m.regNo);
-    const uniqueRegNos = new Set(regNos);
-    if (uniqueRegNos.size !== regNos.length) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Duplicate registration numbers found within the submission.' 
-        });
-    }
-    
     try {
         const db = await readDB();
+        const settings = db.settings || DEFAULT_SETTINGS;
+
+        // Check registration status and deadline
+        const regStatus = settings.registrationStatus || 'auto';
+        if (regStatus === 'closed') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Registration is currently closed by the administrator/instructor.' 
+            });
+        }
+        if (regStatus === 'auto') {
+            const deadline = new Date(settings.deadline);
+            if (!isNaN(deadline.getTime()) && new Date() > deadline) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'Registration deadline has passed. Please contact CR or instructor.' 
+                });
+            }
+        }
+
+        const { type, members } = req.body;
+        
+        if (!type || !members || !Array.isArray(members) || members.length === 0) {
+            return res.status(400).json({ success: false, message: 'Invalid data provided.' });
+        }
+
+        const minMembers = parseInt(settings.minMembers) || 2;
+        const maxMembers = parseInt(settings.maxMembers) || 3;
+        
+        if (type === 'individual') {
+            if (settings.allowIndividual === false) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Individual registration is currently disabled by administrator. Please register as a team.' 
+                });
+            }
+            if (members.length !== 1) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Individual registration must have exactly 1 member.' 
+                });
+            }
+        } else if (type === 'team') {
+            if (members.length < minMembers || members.length > maxMembers) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Team must have minimum ${minMembers} and maximum ${maxMembers} members.` 
+                });
+            }
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid registration type.' });
+        }
+        
+        for (const member of members) {
+            if (!member.name || !member.regNo || !member.whatsapp) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'All fields (Name, Reg No, WhatsApp No) are required for every member.' 
+                });
+            }
+            member.name = member.name.trim();
+            member.regNo = member.regNo.trim().toUpperCase();
+            member.whatsapp = member.whatsapp.trim();
+        }
+        
+        const regNos = members.map(m => m.regNo);
+        const uniqueRegNos = new Set(regNos);
+        if (uniqueRegNos.size !== regNos.length) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Duplicate registration numbers found within the submission.' 
+            });
+        }
+        
         for (const member of members) {
             for (const group of db.groups) {
                 for (const existingMember of group.members) {
@@ -403,7 +493,8 @@ app.post(['/api/register', '/register'], async (req, res) => {
         }
         
         const groupId = db.nextGroupId || (db.groups.length + 1);
-        const groupName = `G-${groupId < 10 ? '0' + groupId : groupId}`;
+        const prefix = settings.groupPrefix || 'G-';
+        const groupName = `${prefix}${groupId < 10 ? '0' + groupId : groupId}`;
         
         const newGroup = {
             id: groupId,
@@ -488,6 +579,78 @@ app.post(['/api/admin/db', '/admin/db'], verifyAdminAuth, async (req, res) => {
     }
 });
 
+// Admin: Get Settings
+app.get(['/api/admin/settings', '/admin/settings'], verifyAdminAuth, async (req, res) => {
+    try {
+        const db = await readDB();
+        res.json({ success: true, settings: db.settings || DEFAULT_SETTINGS });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Failed to read settings.' });
+    }
+});
+
+// Admin: Save / Update Settings
+const handleAdminSaveSettings = async (req, res) => {
+    try {
+        const updates = req.body;
+        if (!updates || typeof updates !== 'object') {
+            return res.status(400).json({ success: false, message: 'Invalid settings payload.' });
+        }
+
+        const db = await readDB();
+        const current = db.settings || { ...DEFAULT_SETTINGS };
+
+        let minM = updates.minMembers !== undefined ? parseInt(updates.minMembers) : current.minMembers;
+        let maxM = updates.maxMembers !== undefined ? parseInt(updates.maxMembers) : current.maxMembers;
+        if (isNaN(minM) || minM < 1) minM = 1;
+        if (isNaN(maxM) || maxM < minM) maxM = minM;
+
+        let deadline = updates.deadline !== undefined ? String(updates.deadline).trim() : current.deadline;
+        if (deadline) {
+            const d = new Date(deadline);
+            if (isNaN(d.getTime())) {
+                return res.status(400).json({ success: false, message: 'Invalid deadline date/time format.' });
+            }
+        }
+
+        let regStatus = updates.registrationStatus || current.registrationStatus || 'auto';
+        if (!['auto', 'open', 'closed'].includes(regStatus)) {
+            regStatus = 'auto';
+        }
+
+        db.settings = {
+            ...current,
+            ...updates,
+            minMembers: minM,
+            maxMembers: maxM,
+            deadline: deadline,
+            registrationStatus: regStatus,
+            allowIndividual: updates.allowIndividual !== undefined ? Boolean(updates.allowIndividual) : current.allowIndividual,
+            instructorName: updates.instructorName !== undefined ? String(updates.instructorName).trim() : current.instructorName,
+            instructorTitle: updates.instructorTitle !== undefined ? String(updates.instructorTitle).trim() : current.instructorTitle,
+            className: updates.className !== undefined ? String(updates.className).trim() : current.className,
+            departmentName: updates.departmentName !== undefined ? String(updates.departmentName).trim() : current.departmentName,
+            courseName: updates.courseName !== undefined ? String(updates.courseName).trim() : current.courseName,
+            courseFullName: updates.courseFullName !== undefined ? String(updates.courseFullName).trim() : current.courseFullName,
+            sessionSemesterSection: updates.sessionSemesterSection !== undefined ? String(updates.sessionSemesterSection).trim() : current.sessionSemesterSection,
+            universityName: updates.universityName !== undefined ? String(updates.universityName).trim() : current.universityName,
+            crName: updates.crName !== undefined ? String(updates.crName).trim() : current.crName,
+            groupPrefix: updates.groupPrefix !== undefined ? String(updates.groupPrefix).trim() : current.groupPrefix,
+            announcementNote: updates.announcementNote !== undefined ? String(updates.announcementNote).trim() : current.announcementNote,
+            goodLuckNote: updates.goodLuckNote !== undefined ? String(updates.goodLuckNote).trim() : current.goodLuckNote
+        };
+
+        await writeDB(db);
+        res.json({ success: true, message: 'System settings saved successfully!', settings: db.settings });
+    } catch (err) {
+        console.error('Settings update error:', err);
+        res.status(500).json({ success: false, message: 'Server error saving settings: ' + err.message });
+    }
+};
+
+app.post(['/api/admin/settings', '/admin/settings'], verifyAdminAuth, handleAdminSaveSettings);
+app.put(['/api/admin/settings', '/admin/settings'], verifyAdminAuth, handleAdminSaveSettings);
+
 // Admin: Add Group (Bypasses deadline, validates duplicates)
 app.post(['/api/admin/group', '/admin/group'], verifyAdminAuth, async (req, res) => {
     const { type, groupName, members } = req.body;
@@ -495,38 +658,41 @@ app.post(['/api/admin/group', '/admin/group'], verifyAdminAuth, async (req, res)
         return res.status(400).json({ success: false, message: 'At least 1 member is required.' });
     }
 
-    if (type === 'team' && members.length > 3) {
-        return res.status(400).json({ success: false, message: 'A team can have a maximum of 3 members.' });
-    }
-
-    // Validate fields and trim
-    for (const m of members) {
-        if (!m.name || !m.name.trim()) {
-            return res.status(400).json({ success: false, message: 'Full Name is required for all members.' });
-        }
-        if (!m.regNo || !m.regNo.trim()) {
-            return res.status(400).json({ success: false, message: 'Registration Number is required for all members.' });
-        }
-        if (!m.whatsapp || !m.whatsapp.trim()) {
-            return res.status(400).json({ success: false, message: 'WhatsApp Number is required for all members.' });
-        }
-        m.name = m.name.trim();
-        m.regNo = m.regNo.trim().toUpperCase();
-        m.whatsapp = m.whatsapp.trim();
-    }
-
-    // Check duplicate within the submission
-    const regNos = members.map(m => m.regNo);
-    const uniqueRegNos = new Set(regNos);
-    if (uniqueRegNos.size !== regNos.length) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Duplicate registration numbers detected in this group submission.' 
-        });
-    }
-
     try {
         const db = await readDB();
+        const minLimit = (db.settings && db.settings.minMembers) ? parseInt(db.settings.minMembers) : 2;
+        const maxLimit = (db.settings && db.settings.maxMembers) ? parseInt(db.settings.maxMembers) : 3;
+
+        if (type === 'team' && (members.length < minLimit || members.length > maxLimit)) {
+            return res.status(400).json({ success: false, message: `A team must have between ${minLimit} and ${maxLimit} members.` });
+        }
+
+        // Validate fields and trim
+        for (const m of members) {
+            if (!m.name || !m.name.trim()) {
+                return res.status(400).json({ success: false, message: 'Full Name is required for all members.' });
+            }
+            if (!m.regNo || !m.regNo.trim()) {
+                return res.status(400).json({ success: false, message: 'Registration Number is required for all members.' });
+            }
+            if (!m.whatsapp || !m.whatsapp.trim()) {
+                return res.status(400).json({ success: false, message: 'WhatsApp Number is required for all members.' });
+            }
+            m.name = m.name.trim();
+            m.regNo = m.regNo.trim().toUpperCase();
+            m.whatsapp = m.whatsapp.trim();
+        }
+
+        // Check duplicate within the submission
+        const regNos = members.map(m => m.regNo);
+        const uniqueRegNos = new Set(regNos);
+        if (uniqueRegNos.size !== regNos.length) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Duplicate registration numbers detected in this group submission.' 
+            });
+        }
+
         for (const member of members) {
             for (const existingGroup of db.groups) {
                 for (const existingMember of existingGroup.members) {
@@ -598,8 +764,10 @@ app.put(['/api/admin/group/:id', '/admin/group/:id'], verifyAdminAuth, async (re
             if (members.length === 0) {
                 return res.status(400).json({ success: false, message: 'At least 1 member is required.' });
             }
-            if (type === 'team' && members.length > 3) {
-                return res.status(400).json({ success: false, message: 'A team can have a maximum of 3 members.' });
+            const minLimit = (db.settings && db.settings.minMembers) ? parseInt(db.settings.minMembers) : 2;
+            const maxLimit = (db.settings && db.settings.maxMembers) ? parseInt(db.settings.maxMembers) : 3;
+            if (type === 'team' && (members.length < minLimit || members.length > maxLimit)) {
+                return res.status(400).json({ success: false, message: `A team must have between ${minLimit} and ${maxLimit} members.` });
             }
 
             // Validate fields and trim
@@ -696,8 +864,9 @@ app.post(['/api/admin/group/:id/member', '/admin/group/:id/member'], verifyAdmin
             return res.status(404).json({ success: false, message: 'Group not found.' });
         }
 
-        if (group.members.length >= 3) {
-            return res.status(400).json({ success: false, message: 'This group already has the maximum 3 members.' });
+        const maxLimit = (db.settings && db.settings.maxMembers) ? parseInt(db.settings.maxMembers) : 3;
+        if (group.members.length >= maxLimit) {
+            return res.status(400).json({ success: false, message: `This group already has the maximum ${maxLimit} members.` });
         }
 
         for (const g of db.groups) {

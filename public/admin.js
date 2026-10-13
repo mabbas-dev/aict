@@ -147,16 +147,34 @@ async function loadAdminData() {
             headers: { 'Authorization': `Bearer ${adminToken}` }
         });
         if (ok && data && data.success) {
-            currentDb = data.data || { groups: [], nextGroupId: 1 };
+            currentDb = data.data || { groups: [], nextGroupId: 1, settings: {} };
+            if (!currentDb.settings) currentDb.settings = {};
             if (data.storage) {
                 renderStorageStatus(data.storage);
             }
+            updateAdminBrandInfo();
             renderAdminStats();
             renderAdminGroups();
+            renderAdminSettings(currentDb.settings);
             renderRawJson();
         }
     } catch (e) {
         console.error('Failed to load admin data:', e);
+    }
+}
+
+function updateAdminBrandInfo() {
+    const s = currentDb.settings || {};
+    const brandTitle = document.getElementById('adminBrandTitle');
+    const brandSub = document.getElementById('adminBrandSub');
+    if (brandTitle && s.courseName) {
+        brandTitle.textContent = `${s.courseName} ADMIN`;
+    }
+    if (brandSub) {
+        const session = s.sessionSemesterSection || 'Fall 2026';
+        const instructor = s.instructorName || 'Mis Maira';
+        const title = s.instructorTitle || 'Lab Instructor';
+        brandSub.textContent = `${session} | Instructor: ${instructor} (${title})`;
     }
 }
 
@@ -253,6 +271,7 @@ function renderAdminStats() {
 function renderAdminGroups() {
     const container = document.getElementById('adminGroupsList');
     const groups = currentDb.groups || [];
+    const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
     container.innerHTML = '';
 
     if (groups.length === 0) {
@@ -265,8 +284,8 @@ function renderAdminGroups() {
         card.className = 'admin-group-card';
         const members = group.members || [];
         const isIndiv = group.type === 'individual';
-        const isFull = members.length >= 3 || isIndiv;
-        const memberCountLabel = isIndiv ? '1 member' : `${members.length}/3 members`;
+        const isFull = members.length >= maxM || isIndiv;
+        const memberCountLabel = isIndiv ? '1 member' : `${members.length}/${maxM} members`;
 
         let rowsHtml = '';
         let hasLeaderAssigned = false;
@@ -294,7 +313,7 @@ function renderAdminGroups() {
                     <span style="font-size:0.78rem;color:#94a3b8;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:10px;">${memberCountLabel}</span>
                 </div>
                 <div class="admin-group-actions">
-                    ${isIndiv ? '<span class="badge-full">Individual (1/1)</span>' : (isFull ? '<span class="badge-full">Full (3/3)</span>' : `<button class="admin-btn-accent-sm" onclick="openQuickAddMember(${group.id}, '${escapeHtml(group.groupName)}')">+ Add Student</button>`)}
+                    ${isIndiv ? '<span class="badge-full">Individual (1/1)</span>' : (isFull ? `<span class="badge-full">Full (${maxM}/${maxM})</span>` : `<button class="admin-btn-accent-sm" onclick="openQuickAddMember(${group.id}, '${escapeHtml(group.groupName)}')">+ Add Student</button>`)}
                     <button class="admin-btn-ghost-sm" onclick="openEditGroupModal(${group.id})">Edit</button>
                     <button class="admin-btn-danger" style="padding:6px 12px;font-size:0.8rem;" onclick="confirmDeleteGroup(${group.id})">Delete</button>
                 </div>
@@ -325,12 +344,324 @@ function renderRawJson() {
 // ---- Tab Switching ----
 function switchTab(tab) {
     document.getElementById('tabGroupsBtn').classList.toggle('active', tab === 'groups');
+    document.getElementById('tabSettingsBtn')?.classList.toggle('active', tab === 'settings');
     document.getElementById('tabJsonBtn').classList.toggle('active', tab === 'json');
+
     document.getElementById('tabGroupsContent').classList.toggle('hidden', tab !== 'groups');
+    document.getElementById('tabSettingsContent')?.classList.toggle('hidden', tab !== 'settings');
     document.getElementById('tabJsonContent').classList.toggle('hidden', tab !== 'json');
 
-    if (tab === 'json') {
+    if (tab === 'settings') {
+        renderAdminSettings(currentDb.settings);
+    } else if (tab === 'json') {
         renderRawJson();
+    }
+}
+
+// ---- System Settings Functions ----
+function renderAdminSettings(settings) {
+    const s = settings || (currentDb && currentDb.settings) || {};
+
+    const statusSelect = document.getElementById('setRegistrationStatus');
+    if (statusSelect) statusSelect.value = s.registrationStatus || 'auto';
+
+    const deadlineInput = document.getElementById('setDeadline');
+    if (deadlineInput) {
+        deadlineInput.value = formatDateTimeLocal(s.deadline);
+    }
+
+    const prefixInput = document.getElementById('setGroupPrefix');
+    if (prefixInput) prefixInput.value = s.groupPrefix || 'G-';
+
+    const minMInput = document.getElementById('setMinMembers');
+    if (minMInput) minMInput.value = s.minMembers !== undefined ? s.minMembers : 2;
+
+    const maxMInput = document.getElementById('setMaxMembers');
+    if (maxMInput) maxMInput.value = s.maxMembers !== undefined ? s.maxMembers : 3;
+
+    const allowIndivInput = document.getElementById('setAllowIndividual');
+    if (allowIndivInput) allowIndivInput.checked = s.allowIndividual !== false;
+
+    const instName = document.getElementById('setInstructorName');
+    if (instName) instName.value = s.instructorName || 'Mis Maira';
+
+    const instTitle = document.getElementById('setInstructorTitle');
+    if (instTitle) instTitle.value = s.instructorTitle || 'Lab Instructor';
+
+    const crName = document.getElementById('setCrName');
+    if (crName) crName.value = s.crName || 'M ABBAS';
+
+    const courseName = document.getElementById('setCourseName');
+    if (courseName) courseName.value = s.courseName || 'AICT LAB — FALL 2026';
+
+    const courseFullName = document.getElementById('setCourseFullName');
+    if (courseFullName) courseFullName.value = s.courseFullName || 'Applications of Information & Communication Technologies (AICT) - Lab';
+
+    const className = document.getElementById('setClassName');
+    if (className) className.value = s.className || 'BS SOFTWARE ENGINEERING';
+
+    const deptName = document.getElementById('setDepartmentName');
+    if (deptName) deptName.value = s.departmentName || 'Department of Software Engineering';
+
+    const sessionSec = document.getElementById('setSessionSemesterSection');
+    if (sessionSec) sessionSec.value = s.sessionSemesterSection || 'Fall 2026 | 1st | B (BS Software Engineering)';
+
+    const uniName = document.getElementById('setUniversityName');
+    if (uniName) uniName.value = s.universityName || 'Ibadat International University Islamabad';
+
+    const announcement = document.getElementById('setAnnouncementNote');
+    if (announcement) announcement.value = s.announcementNote || 'The final revision of groups is made by the instructor.';
+
+    const goodLuck = document.getElementById('setGoodLuckNote');
+    if (goodLuck) goodLuck.value = s.goodLuckNote || 'GOOD LUCK FOR YOUR LABS!';
+
+    updateSettingsStatusPreview();
+}
+
+function formatDateTimeLocal(dateVal) {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function updateSettingsStatusPreview() {
+    const statusSelect = document.getElementById('setRegistrationStatus');
+    const deadlineInput = document.getElementById('setDeadline');
+    const badge = document.getElementById('settingsStatusBadge');
+    const previewEl = document.getElementById('settingsStatusPreview');
+    if (!statusSelect || !previewEl) return;
+
+    const mode = statusSelect.value;
+    const deadlineVal = deadlineInput ? deadlineInput.value : '';
+    const now = new Date();
+    const deadlineDate = deadlineVal ? new Date(deadlineVal) : null;
+    const isPast = deadlineDate && !isNaN(deadlineDate.getTime()) && now > deadlineDate;
+
+    let badgeClass = 'status-pill-auto';
+    let badgeText = '⏳ Auto';
+    let previewHtml = '';
+
+    if (mode === 'open') {
+        badgeClass = 'status-pill-open';
+        badgeText = '🟢 Open (Forced)';
+        previewHtml = `
+            <div style="color: #34d399; font-weight: 700; margin-bottom: 4px;">🟢 Status: Registration is FORCED OPEN</div>
+            <div style="color: #cbd5e1;">Students can register immediately. Deadline restrictions are bypassed.</div>
+        `;
+    } else if (mode === 'closed') {
+        badgeClass = 'status-pill-closed';
+        badgeText = '🔴 Closed (Locked)';
+        previewHtml = `
+            <div style="color: #f87171; font-weight: 700; margin-bottom: 4px;">🔴 Status: Registration is LOCKED / CLOSED</div>
+            <div style="color: #cbd5e1;">The public student registration form will display the closed notice and reject submissions.</div>
+        `;
+    } else {
+        if (isPast) {
+            badgeClass = 'status-pill-closed';
+            badgeText = '🔴 Expired (Auto)';
+            previewHtml = `
+                <div style="color: #f87171; font-weight: 700; margin-bottom: 4px;">🔴 Status: Deadline Expired (${deadlineDate.toLocaleString()})</div>
+                <div style="color: #cbd5e1;">Registration period has ended according to the timer. The portal is locked for students.</div>
+            `;
+        } else if (deadlineDate && !isNaN(deadlineDate.getTime())) {
+            badgeClass = 'status-pill-auto';
+            badgeText = '⏳ Active Countdown';
+            const diffMs = deadlineDate - now;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            const remainStr = diffDays > 0 ? `${diffDays}d ${diffHours % 24}h remaining` : `${diffHours}h remaining`;
+            previewHtml = `
+                <div style="color: #c084fc; font-weight: 700; margin-bottom: 4px;">⏳ Active Registration Window (${remainStr})</div>
+                <div style="color: #cbd5e1;">Students can register until <strong>${deadlineDate.toLocaleString()}</strong>. The live countdown timer is visible.</div>
+            `;
+        } else {
+            badgeClass = 'status-pill-auto';
+            badgeText = '⏳ Auto';
+            previewHtml = `<div style="color: #94a3b8;">Please select a deadline date & time to activate countdown.</div>`;
+        }
+    }
+
+    if (badge) {
+        badge.className = `settings-status-pill ${badgeClass}`;
+        badge.textContent = badgeText;
+    }
+    previewEl.innerHTML = previewHtml;
+}
+
+function quickSetDeadline(days) {
+    const deadlineInput = document.getElementById('setDeadline');
+    if (!deadlineInput) return;
+    const target = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    target.setHours(9, 0, 0, 0);
+    deadlineInput.value = formatDateTimeLocal(target);
+    updateSettingsStatusPreview();
+}
+
+function resetSettingsForm() {
+    Swal.fire({
+        title: 'Reset to Defaults?',
+        text: 'This will restore standard AICT Lab course settings.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Reset',
+        cancelButtonText: 'Cancel',
+        background: '#1a1f35',
+        color: '#f1f5f9'
+    }).then(result => {
+        if (result.isConfirmed) {
+            renderAdminSettings({
+                courseName: "AICT LAB — FALL 2026",
+                courseFullName: "Applications of Information & Communication Technologies (AICT) - Lab",
+                className: "BS SOFTWARE ENGINEERING",
+                departmentName: "Department of Software Engineering",
+                universityName: "Ibadat International University Islamabad",
+                sessionSemesterSection: "Fall 2026 | 1st | B (BS Software Engineering)",
+                instructorName: "Mis Maira",
+                instructorTitle: "Lab Instructor",
+                crName: "M ABBAS",
+                deadline: "2026-10-13T09:00:00+05:00",
+                registrationStatus: "auto",
+                minMembers: 2,
+                maxMembers: 3,
+                allowIndividual: true,
+                groupPrefix: "G-",
+                announcementNote: "The final revision of groups is made by the instructor.",
+                goodLuckNote: "GOOD LUCK FOR YOUR LABS!"
+            });
+            Swal.fire({
+                icon: 'info',
+                title: 'Defaults Loaded',
+                text: 'Click "Save Settings" to apply these changes to the server.',
+                background: '#1a1f35',
+                color: '#f1f5f9'
+            });
+        }
+    });
+}
+
+async function handleSaveSettings() {
+    const status = document.getElementById('setRegistrationStatus')?.value || 'auto';
+    const deadlineVal = document.getElementById('setDeadline')?.value;
+    const prefix = document.getElementById('setGroupPrefix')?.value.trim() || 'G-';
+    const minM = parseInt(document.getElementById('setMinMembers')?.value || '2');
+    const maxM = parseInt(document.getElementById('setMaxMembers')?.value || '3');
+    const allowIndiv = document.getElementById('setAllowIndividual')?.checked ?? true;
+
+    const instructorName = document.getElementById('setInstructorName')?.value.trim() || 'Mis Maira';
+    const instructorTitle = document.getElementById('setInstructorTitle')?.value.trim() || 'Lab Instructor';
+    const crName = document.getElementById('setCrName')?.value.trim() || 'M ABBAS';
+
+    const courseName = document.getElementById('setCourseName')?.value.trim() || 'AICT LAB — FALL 2026';
+    const courseFullName = document.getElementById('setCourseFullName')?.value.trim() || 'Applications of Information & Communication Technologies (AICT) - Lab';
+    const className = document.getElementById('setClassName')?.value.trim() || 'BS SOFTWARE ENGINEERING';
+    const departmentName = document.getElementById('setDepartmentName')?.value.trim() || 'Department of Software Engineering';
+    const sessionSemesterSection = document.getElementById('setSessionSemesterSection')?.value.trim() || 'Fall 2026 | 1st | B (BS Software Engineering)';
+    const universityName = document.getElementById('setUniversityName')?.value.trim() || 'Ibadat International University Islamabad';
+
+    const announcementNote = document.getElementById('setAnnouncementNote')?.value.trim() || '';
+    const goodLuckNote = document.getElementById('setGoodLuckNote')?.value.trim() || 'GOOD LUCK FOR YOUR LABS!';
+
+    if (isNaN(minM) || minM < 1) {
+        Swal.fire({ icon: 'error', title: 'Invalid Limit', text: 'Minimum members must be at least 1.', background: '#1a1f35', color: '#f1f5f9' });
+        return;
+    }
+    if (isNaN(maxM) || maxM < minM) {
+        Swal.fire({ icon: 'error', title: 'Invalid Limit', text: `Maximum members cannot be less than minimum members (${minM}).`, background: '#1a1f35', color: '#f1f5f9' });
+        return;
+    }
+
+    let deadlineIso = currentDb.settings?.deadline || new Date().toISOString();
+    if (deadlineVal) {
+        const parsedD = new Date(deadlineVal);
+        if (isNaN(parsedD.getTime())) {
+            Swal.fire({ icon: 'error', title: 'Invalid Date', text: 'Please enter a valid registration deadline date/time.', background: '#1a1f35', color: '#f1f5f9' });
+            return;
+        }
+        deadlineIso = parsedD.toISOString();
+    }
+
+    const payload = {
+        registrationStatus: status,
+        deadline: deadlineIso,
+        groupPrefix: prefix,
+        minMembers: minM,
+        maxMembers: maxM,
+        allowIndividual: allowIndiv,
+        instructorName,
+        instructorTitle,
+        crName,
+        courseName,
+        courseFullName,
+        className,
+        departmentName,
+        sessionSemesterSection,
+        universityName,
+        announcementNote,
+        goodLuckNote
+    };
+
+    const topBtn = document.getElementById('topSaveSettingsBtn');
+    const bottomBtn = document.getElementById('bottomSaveSettingsBtn');
+    if (topBtn) { topBtn.disabled = true; topBtn.textContent = 'Saving...'; }
+    if (bottomBtn) { bottomBtn.disabled = true; bottomBtn.textContent = 'Saving...'; }
+
+    try {
+        const { ok, data } = await safeFetchJson('/api/admin/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (data && data.success) {
+            currentDb.settings = data.settings;
+            updateAdminBrandInfo();
+            renderAdminGroups();
+            renderAdminSettings(currentDb.settings);
+            renderRawJson();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Settings Saved!',
+                html: `
+                    <div style="text-align: left; font-size: 0.9rem; line-height: 1.6; color: #cbd5e1;">
+                        <p style="margin-bottom: 8px;"><strong>All settings are now LIVE across portals and reports:</strong></p>
+                        <ul style="padding-left: 20px; margin: 0;">
+                            <li>Instructor: <strong>${escapeHtml(data.settings.instructorName)}</strong> (${escapeHtml(data.settings.instructorTitle)})</li>
+                            <li>Class: <strong>${escapeHtml(data.settings.className)}</strong></li>
+                            <li>Team Size: <strong>${data.settings.minMembers} to ${data.settings.maxMembers} members</strong></li>
+                            <li>Status Mode: <strong>${data.settings.registrationStatus.toUpperCase()}</strong></li>
+                            <li>PDF & Word report headers updated.</li>
+                        </ul>
+                    </div>
+                `,
+                background: '#1a1f35',
+                color: '#f1f5f9'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Save Failed',
+                text: (data && data.message) || 'Could not save settings.',
+                background: '#1a1f35',
+                color: '#f1f5f9'
+            });
+        }
+    } catch (err) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Connection Error',
+            text: err.message,
+            background: '#1a1f35',
+            color: '#f1f5f9'
+        });
+    } finally {
+        if (topBtn) { topBtn.disabled = false; topBtn.textContent = '💾 Save Settings'; }
+        if (bottomBtn) { bottomBtn.disabled = false; bottomBtn.textContent = '💾 Save System Settings'; }
     }
 }
 
@@ -413,14 +744,22 @@ function openAddGroupModal() {
     editingGroupId = null;
     document.getElementById('modalTitle').textContent = 'Add New Group (Admin)';
     const nextId = currentDb.nextGroupId || (currentDb.groups.length + 1);
-    document.getElementById('modalGroupName').value = `G-${nextId < 10 ? '0' + nextId : nextId}`;
+    const prefix = (currentDb.settings && currentDb.settings.groupPrefix) || 'G-';
+    document.getElementById('modalGroupName').value = `${prefix}${nextId < 10 ? '0' + nextId : nextId}`;
     document.getElementById('modalGroupType').value = 'team';
     document.getElementById('modalGroupId').value = '';
+
+    const minM = (currentDb.settings && currentDb.settings.minMembers) ? parseInt(currentDb.settings.minMembers) : 2;
+    const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
+    const teamOption = document.querySelector('#modalGroupType option[value="team"]');
+    if (teamOption) teamOption.textContent = `Team (${minM}-${maxM} members)`;
 
     const container = document.getElementById('modalMembersContainer');
     container.innerHTML = '';
     addModalMemberRow('Team Leader');
-    addModalMemberRow('Member');
+    for (let i = 1; i < minM; i++) {
+        addModalMemberRow('Member');
+    }
 
     updateModalMembersHeader();
     document.getElementById('groupModalOverlay').classList.remove('hidden');
@@ -430,6 +769,11 @@ function openEditGroupModal(id) {
     editingGroupId = id;
     const group = currentDb.groups.find(g => g.id === id);
     if (!group) return;
+
+    const minM = (currentDb.settings && currentDb.settings.minMembers) ? parseInt(currentDb.settings.minMembers) : 2;
+    const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
+    const teamOption = document.querySelector('#modalGroupType option[value="team"]');
+    if (teamOption) teamOption.textContent = `Team (${minM}-${maxM} members)`;
 
     document.getElementById('modalTitle').textContent = `Edit Group (${group.groupName})`;
     document.getElementById('modalGroupName').value = group.groupName;
@@ -456,6 +800,7 @@ function handleModalTypeChange() {
     const type = document.getElementById('modalGroupType').value;
     const container = document.getElementById('modalMembersContainer');
     const cards = container.querySelectorAll('.admin-member-card');
+    const minM = (currentDb.settings && currentDb.settings.minMembers) ? parseInt(currentDb.settings.minMembers) : 2;
 
     if (type === 'individual') {
         // Individual: keep exactly 1 member
@@ -478,7 +823,7 @@ function handleModalTypeChange() {
             if (removeBtn) removeBtn.style.display = 'none';
         }
     } else {
-        // Team mode: allow 2-3 members
+        // Team mode: allow members
         const firstCard = container.querySelector('.admin-member-card');
         if (firstCard) {
             const roleSelect = firstCard.querySelector('.admin-card-role-select');
@@ -494,8 +839,10 @@ function handleModalTypeChange() {
             if (removeBtn) removeBtn.style.display = 'flex';
             updateModalCardHeader(firstCard);
         }
-        if (cards.length <= 1) {
-            addModalMemberRow('Member');
+        if (cards.length < minM) {
+            for (let i = cards.length; i < minM; i++) {
+                addModalMemberRow('Member');
+            }
         }
     }
     updateModalMembersHeader();
@@ -505,6 +852,7 @@ function addModalMemberRow(role = 'Member', name = '', regNo = '', whatsapp = ''
     const type = document.getElementById('modalGroupType').value;
     const container = document.getElementById('modalMembersContainer');
     const currentCards = container.querySelectorAll('.admin-member-card');
+    const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
 
     if (type === 'individual' && currentCards.length >= 1) {
         Swal.fire({
@@ -517,11 +865,11 @@ function addModalMemberRow(role = 'Member', name = '', regNo = '', whatsapp = ''
         return;
     }
 
-    if (currentCards.length >= 3) {
+    if (currentCards.length >= maxM) {
         Swal.fire({
             icon: 'warning',
             title: 'Maximum Reached',
-            text: 'A team can have a maximum of 3 members.',
+            text: `A team can have a maximum of ${maxM} members.`,
             background: '#1a1f35',
             color: '#f1f5f9'
         });
@@ -663,6 +1011,7 @@ function updateModalMembersHeader() {
     const count = cards.length;
     const badge = document.getElementById('modalMemberCountBadge');
     const addBtn = document.getElementById('modalAddMemberBtn');
+    const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
 
     if (type === 'individual') {
         if (badge) badge.textContent = '1/1 (Individual)';
@@ -671,11 +1020,11 @@ function updateModalMembersHeader() {
             addBtn.style.display = 'none';
         }
     } else {
-        if (badge) badge.textContent = `${count}/3`;
+        if (badge) badge.textContent = `${count}/${maxM}`;
         if (addBtn) {
             addBtn.style.display = 'inline-block';
-            addBtn.disabled = count >= 3;
-            addBtn.style.opacity = count >= 3 ? '0.5' : '1';
+            addBtn.disabled = count >= maxM;
+            addBtn.style.opacity = count >= maxM ? '0.5' : '1';
         }
     }
 }
@@ -755,8 +1104,10 @@ async function handleSaveGroup(e) {
             return;
         }
     } else {
-        if (cards.length < 2 || cards.length > 3) {
-            Swal.fire({ icon: 'warning', title: 'Invalid Team Size', text: 'A team must have between 2 and 3 members.', background: '#1a1f35', color: '#f1f5f9' });
+        const minM = (currentDb.settings && currentDb.settings.minMembers) ? parseInt(currentDb.settings.minMembers) : 2;
+        const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
+        if (cards.length < minM || cards.length > maxM) {
+            Swal.fire({ icon: 'warning', title: 'Invalid Team Size', text: `A team must have between ${minM} and ${maxM} members.`, background: '#1a1f35', color: '#f1f5f9' });
             return;
         }
     }
@@ -870,11 +1221,12 @@ let quickAddCheckTimeout = null;
 
 function openQuickAddMember(groupId, groupName) {
     const group = (currentDb.groups || []).find(g => g.id === groupId);
-    if (group && (group.members || []).length >= 3) {
+    const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
+    if (group && (group.members || []).length >= maxM) {
         Swal.fire({
             icon: 'info',
             title: 'Group is Full',
-            text: `${group.groupName} already has maximum 3 members. Cannot add more.`,
+            text: `${group.groupName} already has maximum ${maxM} members. Cannot add more.`,
             background: '#1a1f35',
             color: '#f1f5f9'
         });
@@ -1092,27 +1444,35 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             });
         });
 
+        const s = currentDb.settings || {};
+        const pdfUni = s.universityName || 'Ibadat International University Islamabad';
+        const pdfDept = s.departmentName || 'Department of Software Engineering';
+        const pdfCourse = s.courseFullName || 'Applications of Information & Communication Technologies (AICT) - Lab';
+        const pdfShortCourse = s.courseName || 'AICT Lab';
+        const pdfSession = s.sessionSemesterSection || 'Fall 2026 | 1st | B (BS Software Engineering)';
+        const pdfInst = `${s.instructorName || 'Mis Maira'}, ${s.instructorTitle || 'Lab Instructor'}`;
+
         fullHtml += `
         <div class="pdf-page">
             ${isFirstPage ? `
             <div class="pdf-header-wrapper">
-                <h1 class="pdf-uni-name">Ibadat International University Islamabad</h1>
-                <h2 class="pdf-dept-name">Department of Software Engineering</h2>
+                <h1 class="pdf-uni-name">${escapeHtml(pdfUni)}</h1>
+                <h2 class="pdf-dept-name">${escapeHtml(pdfDept)}</h2>
                 <h3 class="pdf-doc-title">Open-Ended Lab Project Groups</h3>
                 <div class="pdf-divider"></div>
             </div>
 
             <div class="pdf-meta-box">
-                <p><strong>Course:</strong> Applications of Information & Communication Technologies (AICT) - Lab</p>
-                <p><strong>Session / Semester / Section:</strong> Fall 2026 | 1st | B (BS Software Engineering)</p>
-                <p><strong>Instructor:</strong> Mis Maira, Lab Instructor</p>
+                <p><strong>Course:</strong> ${escapeHtml(pdfCourse)}</p>
+                <p><strong>Session / Semester / Section:</strong> ${escapeHtml(pdfSession)}</p>
+                <p><strong>Instructor:</strong> ${escapeHtml(pdfInst)}</p>
                 <p class="pdf-total-line"><strong>Total: ${totalStudents} students in ${groups.length} groups</strong></p>
             </div>
             ` : `
             <div class="pdf-sub-header">
                 <div class="pdf-sub-header-left">
-                    <span class="pdf-sub-uni">Ibadat International University Islamabad</span>
-                    <span class="pdf-sub-dept">Department of Software Engineering &bull; AICT Lab</span>
+                    <span class="pdf-sub-uni">${escapeHtml(pdfUni)}</span>
+                    <span class="pdf-sub-dept">${escapeHtml(pdfDept)} &bull; ${escapeHtml(pdfShortCourse)}</span>
                 </div>
                 <div class="pdf-sub-header-right">
                     <span>Open-Ended Lab Project Groups</span>
@@ -1364,12 +1724,12 @@ function generateAndDownloadDOCX() {
                     new Paragraph({
                         alignment: AlignmentType.CENTER,
                         spacing: { after: 40 },
-                        children: [new TextRun({ text: 'Ibadat International University Islamabad', bold: true, size: 34, color: '1B365D', font: 'Arial' })]
+                        children: [new TextRun({ text: currentDb.settings?.universityName || 'Ibadat International University Islamabad', bold: true, size: 34, color: '1B365D', font: 'Arial' })]
                     }),
                     new Paragraph({
                         alignment: AlignmentType.CENTER,
                         spacing: { after: 40 },
-                        children: [new TextRun({ text: 'Department of Software Engineering', bold: true, size: 24, color: '000000', font: 'Arial' })]
+                        children: [new TextRun({ text: currentDb.settings?.departmentName || 'Department of Software Engineering', bold: true, size: 24, color: '000000', font: 'Arial' })]
                     }),
                     new Paragraph({
                         alignment: AlignmentType.CENTER,
@@ -1380,21 +1740,21 @@ function generateAndDownloadDOCX() {
                         spacing: { after: 40 },
                         children: [
                             new TextRun({ text: 'Course: ', bold: true, size: 19, color: '1B365D', font: 'Arial' }),
-                            new TextRun({ text: 'Applications of Information & Communication Technologies (AICT) - Lab', size: 19, color: '1B365D', font: 'Arial' })
+                            new TextRun({ text: currentDb.settings?.courseFullName || 'Applications of Information & Communication Technologies (AICT) - Lab', size: 19, color: '1B365D', font: 'Arial' })
                         ]
                     }),
                     new Paragraph({
                         spacing: { after: 40 },
                         children: [
                             new TextRun({ text: 'Session / Semester / Section: ', bold: true, size: 19, color: '1B365D', font: 'Arial' }),
-                            new TextRun({ text: 'Fall 2026 | 1st | B (BS Software Engineering)', size: 19, color: '1B365D', font: 'Arial' })
+                            new TextRun({ text: currentDb.settings?.sessionSemesterSection || 'Fall 2026 | 1st | B (BS Software Engineering)', size: 19, color: '1B365D', font: 'Arial' })
                         ]
                     }),
                     new Paragraph({
                         spacing: { after: 40 },
                         children: [
                             new TextRun({ text: 'Instructor: ', bold: true, size: 19, color: '1B365D', font: 'Arial' }),
-                            new TextRun({ text: 'Mis Maira, Lab Instructor', size: 19, color: '1B365D', font: 'Arial' })
+                            new TextRun({ text: `${currentDb.settings?.instructorName || 'Mis Maira'}, ${currentDb.settings?.instructorTitle || 'Lab Instructor'}`, size: 19, color: '1B365D', font: 'Arial' })
                         ]
                     }),
                     new Paragraph({

@@ -7,8 +7,27 @@ let registrationType = null;
 let memberCount = 0;
 let currentGroups = [];
 
-// Deadline: 13th October 2026, 9:00 AM PKT (UTC+5)
-const DEADLINE = new Date('2026-10-13T09:00:00+05:00');
+// Default System Settings (will be updated dynamically from server /api/groups)
+let appSettings = {
+    courseName: "AICT LAB — FALL 2026",
+    courseFullName: "Applications of Information & Communication Technologies (AICT) - Lab",
+    className: "BS SOFTWARE ENGINEERING",
+    departmentName: "Department of Software Engineering",
+    universityName: "Ibadat International University Islamabad",
+    sessionSemesterSection: "Fall 2026 | 1st | B (BS Software Engineering)",
+    instructorName: "Mis Maira",
+    instructorTitle: "Lab Instructor",
+    crName: "M ABBAS",
+    deadline: "2026-10-13T09:00:00+05:00",
+    registrationStatus: "auto",
+    minMembers: 2,
+    maxMembers: 3,
+    allowIndividual: true,
+    groupPrefix: "G-",
+    announcementNote: "The final revision of groups is made by the instructor.",
+    goodLuckNote: "GOOD LUCK FOR YOUR LABS!"
+};
+let deadlineDate = new Date(appSettings.deadline);
 let isExpired = false;
 
 // Helper: Safely fetch and parse JSON with clear error fallback
@@ -34,10 +53,76 @@ async function safeFetchJson(url, options = {}) {
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', () => {
     createParticles();
-    startCountdown();
     loadGroups();
+    startCountdown();
     showWelcomePopup();
 });
+
+function applySettingsToPortal(settings) {
+    if (!settings) return;
+    appSettings = { ...appSettings, ...settings };
+    if (appSettings.deadline) {
+        deadlineDate = new Date(appSettings.deadline);
+    }
+
+    if (appSettings.courseName && appSettings.className) {
+        document.title = `${appSettings.courseName} | ${appSettings.className}`;
+    }
+
+    const mainTitle = document.getElementById('portalMainTitle');
+    if (mainTitle && appSettings.courseName) mainTitle.textContent = appSettings.courseName;
+
+    const subTitle = document.getElementById('portalSubTitle');
+    if (subTitle && appSettings.className) subTitle.textContent = appSettings.className;
+
+    const instructorEl = document.getElementById('portalInstructor');
+    if (instructorEl) {
+        instructorEl.innerHTML = `Instructor: <strong>${escapeHTML(appSettings.instructorName)}</strong> (${escapeHTML(appSettings.instructorTitle)})`;
+    }
+
+    const teamRule = document.getElementById('ruleTeamMembers');
+    if (teamRule) {
+        teamRule.innerHTML = `Minimum <strong>${appSettings.minMembers}</strong> members and maximum <strong>${appSettings.maxMembers}</strong> members per team.`;
+    }
+
+    const indivRule = document.getElementById('ruleIndividual');
+    if (indivRule) {
+        indivRule.style.display = appSettings.allowIndividual !== false ? 'list-item' : 'none';
+    }
+
+    const revNote = document.getElementById('welcomeRevisionNote');
+    if (revNote) revNote.textContent = appSettings.announcementNote || 'The final revision of groups is made by the instructor.';
+
+    const goodLuck = document.getElementById('welcomeGoodLuck');
+    if (goodLuck) goodLuck.textContent = appSettings.goodLuckNote || 'GOOD LUCK FOR YOUR LABS!';
+
+    const crNote = document.getElementById('welcomeCrNote');
+    if (crNote) crNote.innerHTML = `— Your CR, <strong>${escapeHTML(appSettings.crName)}</strong>`;
+
+    const teamLimitLabel = document.getElementById('teamLimitLabel');
+    if (teamLimitLabel) {
+        teamLimitLabel.textContent = `${appSettings.minMembers} to ${appSettings.maxMembers} members`;
+    }
+
+    const btnIndividual = document.getElementById('btnIndividual');
+    if (btnIndividual) {
+        btnIndividual.style.display = appSettings.allowIndividual !== false ? 'flex' : 'none';
+    }
+
+    const deadlineLabel = document.getElementById('countdownDeadlineLabel');
+    if (deadlineLabel) {
+        if (appSettings.registrationStatus === 'open') {
+            deadlineLabel.textContent = 'Registration Status: OPEN (Submissions Accepted)';
+        } else if (appSettings.registrationStatus === 'closed') {
+            deadlineLabel.textContent = 'Registration Status: CLOSED by Instructor';
+        } else if (!isNaN(deadlineDate.getTime())) {
+            const options = { day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+            deadlineLabel.textContent = `Deadline: ${deadlineDate.toLocaleString('en-US', options)}`;
+        }
+    }
+
+    updateCountdown();
+}
 
 // ---- Welcome Popup ----
 function showWelcomePopup() {
@@ -63,8 +148,40 @@ function startCountdown() {
 }
 
 function updateCountdown() {
+    const cdSection = document.getElementById('countdownSection');
+    const regSection = document.getElementById('registrationSection');
+    const infoBanner = document.getElementById('infoBanner');
+    const expBanner = document.getElementById('expiredBanner');
+    const expMsg = document.getElementById('expiredBannerMsg');
+
+    if (appSettings.registrationStatus === 'closed') {
+        isExpired = true;
+        cdSection?.classList.add('hidden');
+        regSection?.classList.add('hidden');
+        infoBanner?.classList.add('hidden');
+        expBanner?.classList.remove('hidden');
+        if (expMsg) expMsg.textContent = 'Registration has been temporarily closed by the instructor/administrator.';
+        return;
+    }
+
+    if (appSettings.registrationStatus === 'open') {
+        isExpired = false;
+        cdSection?.classList.remove('hidden');
+        regSection?.classList.remove('hidden');
+        infoBanner?.classList.remove('hidden');
+        expBanner?.classList.add('hidden');
+        const cdLabel = document.getElementById('countdownLabel');
+        if (cdLabel) cdLabel.textContent = 'Registration is Open';
+        document.getElementById('cdHours').textContent = '24';
+        document.getElementById('cdMinutes').textContent = '7';
+        document.getElementById('cdSeconds').textContent = 'Live';
+        cdSection?.classList.remove('urgent');
+        return;
+    }
+
+    // Auto mode
     const now = new Date();
-    const diff = DEADLINE - now;
+    const diff = deadlineDate - now;
 
     if (diff <= 0) {
         if (!isExpired) {
@@ -73,6 +190,15 @@ function updateCountdown() {
         }
         return;
     }
+
+    isExpired = false;
+    cdSection?.classList.remove('hidden');
+    regSection?.classList.remove('hidden');
+    infoBanner?.classList.remove('hidden');
+    expBanner?.classList.add('hidden');
+
+    const cdLabel = document.getElementById('countdownLabel');
+    if (cdLabel) cdLabel.textContent = 'Registration Closes In';
 
     const totalSeconds = Math.floor(diff / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -83,11 +209,10 @@ function updateCountdown() {
     document.getElementById('cdMinutes').textContent = String(minutes).padStart(2, '0');
     document.getElementById('cdSeconds').textContent = String(seconds).padStart(2, '0');
 
-    const section = document.getElementById('countdownSection');
     if (totalSeconds < 3600) {
-        section.classList.add('urgent');
+        cdSection?.classList.add('urgent');
     } else {
-        section.classList.remove('urgent');
+        cdSection?.classList.remove('urgent');
     }
 }
 
@@ -96,6 +221,8 @@ function onTimeExpired() {
     document.getElementById('registrationSection').classList.add('hidden');
     document.getElementById('infoBanner').classList.add('hidden');
     document.getElementById('expiredBanner').classList.remove('hidden');
+    const expMsg = document.getElementById('expiredBannerMsg');
+    if (expMsg) expMsg.textContent = 'Registration period has ended. No more registrations are accepted.';
 }
 
 // ---- Background Particles ----
@@ -140,7 +267,7 @@ function selectType(type) {
     } else {
         document.getElementById('formTitle').textContent = 'Team Registration';
         addBtn.classList.remove('hidden');
-        renderMembers(2, true);
+        renderMembers(appSettings.minMembers || 2, true);
     }
 }
 
@@ -168,7 +295,8 @@ function renderMembers(count, isTeam) {
 }
 
 function addMember() {
-    if (memberCount >= 3) return;
+    const maxLimit = appSettings.maxMembers || 3;
+    if (memberCount >= maxLimit) return;
     const container = document.getElementById('membersContainer');
     addMemberCard(container, false, true);
     updateMemberCountBadge();
@@ -228,11 +356,12 @@ function addMemberCard(container, isLeader, isTeam) {
 }
 
 function removeMember(btn) {
-    if (memberCount <= 2 && registrationType === 'team') {
+    const minLimit = appSettings.minMembers || 2;
+    if (memberCount <= minLimit && registrationType === 'team') {
         Swal.fire({
             icon: 'warning',
             title: 'Cannot Remove',
-            text: 'Team must have at least 2 members.',
+            text: `Team must have at least ${minLimit} members.`,
             confirmButtonText: 'OK',
             background: '#1a1f35',
             color: '#f1f5f9',
@@ -270,13 +399,15 @@ function reindexMembers() {
 
 function updateMemberCountBadge() {
     const badge = document.getElementById('memberCountBadge');
-    badge.textContent = memberCount + '/3';
+    const maxLimit = appSettings.maxMembers || 3;
+    badge.textContent = `${memberCount}/${maxLimit}`;
 }
 
 function updateAddButton() {
     const btn = document.getElementById('addMemberBtn');
-    btn.disabled = memberCount >= 3;
-    if (memberCount >= 3) {
+    const maxLimit = appSettings.maxMembers || 3;
+    btn.disabled = memberCount >= maxLimit;
+    if (memberCount >= maxLimit) {
         btn.querySelector('.add-icon').textContent = '\u2713';
         btn.childNodes[1].textContent = ' Maximum reached ';
     } else {
@@ -471,6 +602,9 @@ async function loadGroups() {
         const { ok, data } = await safeFetchJson(API_BASE + '/api/groups');
         if (data && data.success) {
             currentGroups = data.groups || [];
+            if (data.settings) {
+                applySettingsToPortal(data.settings);
+            }
             renderGroups(currentGroups);
         }
     } catch (err) {
@@ -612,27 +746,34 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             });
         });
 
+        const pdfUni = appSettings.universityName || 'Ibadat International University Islamabad';
+        const pdfDept = appSettings.departmentName || 'Department of Software Engineering';
+        const pdfCourse = appSettings.courseFullName || 'Applications of Information & Communication Technologies (AICT) - Lab';
+        const pdfShortCourse = appSettings.courseName || 'AICT Lab';
+        const pdfSession = appSettings.sessionSemesterSection || 'Fall 2026 | 1st | B (BS Software Engineering)';
+        const pdfInst = `${appSettings.instructorName || 'Mis Maira'}, ${appSettings.instructorTitle || 'Lab Instructor'}`;
+
         fullHtml += `
         <div class="pdf-page">
             ${isFirstPage ? `
             <div class="pdf-header-wrapper">
-                <h1 class="pdf-uni-name">Ibadat International University Islamabad</h1>
-                <h2 class="pdf-dept-name">Department of Software Engineering</h2>
+                <h1 class="pdf-uni-name">${escapeHTML(pdfUni)}</h1>
+                <h2 class="pdf-dept-name">${escapeHTML(pdfDept)}</h2>
                 <h3 class="pdf-doc-title">Open-Ended Lab Project Groups</h3>
                 <div class="pdf-divider"></div>
             </div>
 
             <div class="pdf-meta-box">
-                <p><strong>Course:</strong> Applications of Information & Communication Technologies (AICT) - Lab</p>
-                <p><strong>Session / Semester / Section:</strong> Fall 2026 | 1st | B (BS Software Engineering)</p>
-                <p><strong>Instructor:</strong> Mis Maira, Lab Instructor</p>
+                <p><strong>Course:</strong> ${escapeHTML(pdfCourse)}</p>
+                <p><strong>Session / Semester / Section:</strong> ${escapeHTML(pdfSession)}</p>
+                <p><strong>Instructor:</strong> ${escapeHTML(pdfInst)}</p>
                 <p class="pdf-total-line"><strong>Total: ${totalStudents} students in ${groups.length} groups</strong></p>
             </div>
             ` : `
             <div class="pdf-sub-header">
                 <div class="pdf-sub-header-left">
-                    <span class="pdf-sub-uni">Ibadat International University Islamabad</span>
-                    <span class="pdf-sub-dept">Department of Software Engineering &bull; AICT Lab</span>
+                    <span class="pdf-sub-uni">${escapeHTML(pdfUni)}</span>
+                    <span class="pdf-sub-dept">${escapeHTML(pdfDept)} &bull; ${escapeHTML(pdfShortCourse)}</span>
                 </div>
                 <div class="pdf-sub-header-right">
                     <span>Open-Ended Lab Project Groups</span>
@@ -656,7 +797,7 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             </table>
 
             <div class="pdf-footer">
-                <span>AICT Lab Registration System &bull; Fall 2026</span>
+                <span>${escapeHTML(pdfShortCourse)} Registration System &bull; ${escapeHTML(pdfSession)}</span>
                 <span>Page ${pageNum} of ${totalPages}</span>
             </div>
         </div>
@@ -696,7 +837,7 @@ function generateAndDownloadPDF() {
 
     const opt = {
         margin: [6, 6, 6, 6],
-        filename: `AICT_Lab_Groups_Fall_2026_${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename: `${(appSettings.courseName || 'Project_Groups').replace(/[^a-zA-Z0-9_-]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
             scale: 2,
