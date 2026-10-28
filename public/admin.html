@@ -327,6 +327,33 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Card 6: Project Topic Feature -->
+                            <div class="settings-card full-width-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-icon">📋</div>
+                                    <div>
+                                        <h3>Project Topic Feature</h3>
+                                        <p>Require students to enter a short project topic title and description when registering.</p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div class="settings-toggle-box">
+                                        <div class="toggle-info">
+                                            <strong>Enable Project Topic Submission</strong>
+                                            <p>When enabled, each group must submit a <strong>Topic Title</strong> (short, ≤100 chars) and <strong>Topic Description</strong> (brief details). The topic will be shown on the public website via a preview button on each group card.</p>
+                                        </div>
+                                        <label class="switch">
+                                            <input type="checkbox" id="setEnableTopic">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-info-callout" style="margin-top:14px;">
+                                        <span class="callout-icon">💡</span>
+                                        <span>When activated, the registration form will display topic fields. The Team Leader is responsible for filling in the group's project topic. Topics also appear in PDF/Word exports when enabled.</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Sticky Bottom Bar -->
@@ -387,6 +414,19 @@
                             <option value="individual" style="background-color:#0f172a;color:#ffffff;">Individual (1
                                 member)</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Topic Fields in Modal -->
+                <div id="modalTopicSection" style="margin-bottom:16px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:14px;">
+                    <div style="font-weight:700;color:#c084fc;margin-bottom:10px;font-size:0.88rem;">📋 Project Topic <span style="font-size:0.75rem;color:#94a3b8;font-weight:400;">(Optional)</span></div>
+                    <div class="admin-input-col" style="margin-bottom:10px;">
+                        <label for="modalTopicTitle" style="color:#94a3b8;font-size:0.82rem;">Topic Title <span style="color:#64748b;font-size:0.75rem;">(max 100 characters)</span></label>
+                        <input type="text" id="modalTopicTitle" maxlength="100" placeholder="e.g. Smart Attendance System using AI" autocomplete="off" style="width:100%;">
+                    </div>
+                    <div class="admin-input-col">
+                        <label for="modalTopicDesc" style="color:#94a3b8;font-size:0.82rem;">Topic Description <span style="color:#64748b;font-size:0.75rem;">(brief details)</span></label>
+                        <textarea id="modalTopicDesc" rows="3" maxlength="500" placeholder="A brief description of what the project is about..." style="width:100%;resize:vertical;"></textarea>
                     </div>
                 </div>
 
@@ -453,6 +493,49 @@
                     <button type="submit" class="admin-btn-primary" id="quickAddSubmitBtn">Add Student</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- PDF Export Options Modal -->
+    <div class="admin-modal-overlay hidden" id="pdfExportModalOverlay">
+        <div class="admin-modal-card" style="max-width:520px;">
+            <div class="admin-modal-header">
+                <h3>📄 PDF Export Options</h3>
+                <button type="button" class="admin-modal-close" onclick="closePdfExportModal()">&#10005;</button>
+            </div>
+            <div style="padding:0 4px 4px;">
+                <p style="color:#94a3b8;font-size:0.87rem;margin-bottom:16px;">Customize what information to include in the exported PDF report.</p>
+
+                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+                    <label class="export-option-row">
+                        <input type="checkbox" id="expColGroup" checked> <span>Group Name</span>
+                    </label>
+                    <label class="export-option-row">
+                        <input type="checkbox" id="expColRole" checked> <span>Role (Leader / Member)</span>
+                    </label>
+                    <label class="export-option-row">
+                        <input type="checkbox" id="expColName" checked> <span>Student Name</span>
+                    </label>
+                    <label class="export-option-row">
+                        <input type="checkbox" id="expColReg" checked> <span>Registration Number</span>
+                    </label>
+                    <label class="export-option-row">
+                        <input type="checkbox" id="expColWhatsapp"> <span>WhatsApp Number</span>
+                    </label>
+                    <label class="export-option-row" id="expColTopicRow" style="display:none;">
+                        <input type="checkbox" id="expColTopic" checked> <span>Project Topic (Title + Description)</span>
+                    </label>
+                </div>
+
+                <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:12px;margin-bottom:18px;">
+                    <div style="font-size:0.82rem;color:#94a3b8;">📌 <strong style="color:#c084fc;">Tip:</strong> At least Group Name or Student Name must be selected. Topic option only appears when the topic feature is enabled in settings.</div>
+                </div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button class="admin-btn-ghost" onclick="closePdfExportModal()">Cancel</button>
+                    <button class="admin-btn-success" onclick="confirmAndExportPDF()">&#128196; Generate PDF</button>
+                </div>
+            </div>
         </div>
     </div>
 

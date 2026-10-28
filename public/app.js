@@ -25,7 +25,8 @@ let appSettings = {
     allowIndividual: true,
     groupPrefix: "G-",
     announcementNote: "The final revision of groups is made by the instructor.",
-    goodLuckNote: "GOOD LUCK FOR YOUR LABS!"
+    goodLuckNote: "GOOD LUCK FOR YOUR LABS!",
+    enableTopic: false
 };
 let deadlineDate = new Date(appSettings.deadline);
 let isExpired = false;
@@ -269,6 +270,9 @@ function selectType(type) {
         addBtn.classList.remove('hidden');
         renderMembers(appSettings.minMembers || 2, true);
     }
+
+    // Show/hide topic section
+    updateTopicSectionVisibility();
 }
 
 function goBack() {
@@ -279,6 +283,19 @@ function goBack() {
     document.getElementById('membersContainer').innerHTML = '';
     document.getElementById('btnIndividual').classList.remove('active');
     document.getElementById('btnTeam').classList.remove('active');
+    // Hide topic section
+    const ts = document.getElementById('topicSection');
+    if (ts) ts.classList.add('hidden');
+}
+
+function updateTopicSectionVisibility() {
+    const ts = document.getElementById('topicSection');
+    if (!ts) return;
+    if (appSettings.enableTopic) {
+        ts.classList.remove('hidden');
+    } else {
+        ts.classList.add('hidden');
+    }
 }
 
 // ---- Member Rendering ----
@@ -522,6 +539,27 @@ async function handleSubmit(event) {
         members.push({ name, regNo, whatsapp });
     });
 
+    // Collect topic if enabled
+    let topicPayload = null;
+    if (appSettings.enableTopic) {
+        const topicTitleEl = document.getElementById('topicTitle');
+        const topicDescEl = document.getElementById('topicDesc');
+        const topicTitle = topicTitleEl ? topicTitleEl.value.trim() : '';
+        const topicDesc = topicDescEl ? topicDescEl.value.trim() : '';
+        if (!topicTitle) {
+            if (topicTitleEl) topicTitleEl.classList.add('error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Topic Required',
+                text: 'Please enter a project topic title for your group.',
+                background: '#1a1f35',
+                color: '#f1f5f9',
+            });
+            return;
+        }
+        topicPayload = { title: topicTitle, description: topicDesc };
+    }
+
     if (hasError) {
         Swal.fire({
             icon: 'error',
@@ -543,7 +581,8 @@ async function handleSubmit(event) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 type: registrationType,
-                members: members
+                members: members,
+                topic: topicPayload
             })
         });
 
@@ -683,10 +722,77 @@ function renderGroups(groups) {
             <div class="group-card-body">
                 ${membersHTML}
             </div>
+            ${(group.topic && group.topic.title) ? `
+            <div style="padding:0 16px 14px;">
+                <button class="group-topic-btn has-topic" onclick="showGroupTopic(${group.id})" title="View Project Topic">
+                    📋 View Topic
+                </button>
+            </div>` : (appSettings.enableTopic ? `
+            <div style="padding:0 16px 14px;">
+                <button class="group-topic-btn pending-topic" onclick="showGroupTopic(${group.id})" title="Topic pending submission">
+                    📋 Topic: Pending
+                </button>
+            </div>` : '')}
         `;
 
         grid.appendChild(card);
     });
+}
+
+function showGroupTopic(groupId) {
+    const group = currentGroups.find(g => g.id === groupId);
+    if (!group) return;
+    const topic = group.topic;
+    if (topic && topic.title) {
+        Swal.fire({
+            title: `📋 ${escapeHTML(group.groupName)} — Project Topic`,
+            html: `
+                <div style="text-align:left;padding:6px 2px;">
+                    <div style="
+                        font-size:1.15rem;
+                        font-weight:700;
+                        background:linear-gradient(135deg,#c084fc,#e879f9);
+                        -webkit-background-clip:text;
+                        -webkit-text-fill-color:transparent;
+                        margin-bottom:12px;
+                        line-height:1.45;
+                    ">${escapeHTML(topic.title)}</div>
+                    ${topic.description ? `<div style="
+                        font-size:0.9rem;
+                        color:#cbd5e1;
+                        line-height:1.75;
+                        white-space:pre-wrap;
+                        background:rgba(124,58,237,0.08);
+                        border-left:3px solid #a855f7;
+                        padding:12px 14px;
+                        border-radius:0 8px 8px 0;
+                    ">${escapeHTML(topic.description)}</div>` : '<div style="font-size:0.85rem;color:#64748b;font-style:italic;">No description provided.</div>'}
+                </div>
+            `,
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#7c3aed',
+            background: '#1a1f35',
+            color: '#f1f5f9',
+            width: 520
+        });
+    } else {
+        Swal.fire({
+            title: `📋 ${escapeHTML(group.groupName)} — Project Topic`,
+            html: `
+                <div style="text-align:center;padding:12px 6px;">
+                    <div style="font-size:2.2rem;margin-bottom:10px;">⏳</div>
+                    <div style="font-size:1.05rem;font-weight:600;color:#f1f5f9;margin-bottom:8px;">No Topic Assigned Yet</div>
+                    <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;">
+                        The team leader for <strong>${escapeHTML(group.groupName)}</strong> has not registered a project topic yet.
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Got It',
+            confirmButtonColor: '#7c3aed',
+            background: '#1a1f35',
+            color: '#f1f5f9'
+        });
+    }
 }
 
 // ============================================

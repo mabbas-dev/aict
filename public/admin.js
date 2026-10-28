@@ -272,6 +272,7 @@ function renderAdminGroups() {
     const container = document.getElementById('adminGroupsList');
     const groups = currentDb.groups || [];
     const maxM = (currentDb.settings && currentDb.settings.maxMembers) ? parseInt(currentDb.settings.maxMembers) : 3;
+    const topicEnabled = currentDb.settings && currentDb.settings.enableTopic;
     container.innerHTML = '';
 
     if (groups.length === 0) {
@@ -305,12 +306,17 @@ function renderAdminGroups() {
             `;
         });
 
+        const topicBadge = (group.topic && group.topic.title)
+            ? `<span class="admin-topic-badge" onclick="showTopicPopup(${group.id})" title="Click to view topic">📋 ${escapeHtml(group.topic.title.slice(0, 28))}${group.topic.title.length > 28 ? '...' : ''}</span>`
+            : (topicEnabled ? `<span class="admin-topic-badge" onclick="openEditGroupModal(${group.id})" title="Click to add topic" style="background:rgba(255,255,255,0.04);color:#94a3b8;border:1px dashed rgba(255,255,255,0.18);cursor:pointer;font-size:0.75rem;">+ Add Topic</span>` : '');
+
         card.innerHTML = `
             <div class="admin-group-header">
                 <div class="admin-group-title">
                     <span>${group.groupName}</span>
                     <span class="group-type-badge ${isIndiv ? 'individual-badge' : 'team-badge'}">${isIndiv ? 'Individual' : 'Team'}</span>
                     <span style="font-size:0.78rem;color:#94a3b8;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:10px;">${memberCountLabel}</span>
+                    ${topicBadge}
                 </div>
                 <div class="admin-group-actions">
                     ${isIndiv ? '<span class="badge-full">Individual (1/1)</span>' : (isFull ? `<span class="badge-full">Full (${maxM}/${maxM})</span>` : `<button class="admin-btn-accent-sm" onclick="openQuickAddMember(${group.id}, '${escapeHtml(group.groupName)}')">+ Add Student</button>`)}
@@ -414,6 +420,9 @@ function renderAdminSettings(settings) {
 
     const goodLuck = document.getElementById('setGoodLuckNote');
     if (goodLuck) goodLuck.value = s.goodLuckNote || 'GOOD LUCK FOR YOUR LABS!';
+
+    const enableTopic = document.getElementById('setEnableTopic');
+    if (enableTopic) enableTopic.checked = s.enableTopic === true;
 
     updateSettingsStatusPreview();
 }
@@ -562,6 +571,7 @@ async function handleSaveSettings() {
 
     const announcementNote = document.getElementById('setAnnouncementNote')?.value.trim() || '';
     const goodLuckNote = document.getElementById('setGoodLuckNote')?.value.trim() || 'GOOD LUCK FOR YOUR LABS!';
+    const enableTopic = document.getElementById('setEnableTopic')?.checked ?? false;
 
     if (isNaN(minM) || minM < 1) {
         Swal.fire({ icon: 'error', title: 'Invalid Limit', text: 'Minimum members must be at least 1.', background: '#1a1f35', color: '#f1f5f9' });
@@ -599,7 +609,8 @@ async function handleSaveSettings() {
         sessionSemesterSection,
         universityName,
         announcementNote,
-        goodLuckNote
+        goodLuckNote,
+        enableTopic
     };
 
     const topBtn = document.getElementById('topSaveSettingsBtn');
@@ -761,6 +772,12 @@ function openAddGroupModal() {
         addModalMemberRow('Member');
     }
 
+    // Reset and show topic section
+    const topicSection = document.getElementById('modalTopicSection');
+    if (topicSection) topicSection.classList.remove('hidden');
+    if (document.getElementById('modalTopicTitle')) document.getElementById('modalTopicTitle').value = '';
+    if (document.getElementById('modalTopicDesc')) document.getElementById('modalTopicDesc').value = '';
+
     updateModalMembersHeader();
     document.getElementById('groupModalOverlay').classList.remove('hidden');
 }
@@ -783,9 +800,21 @@ function openEditGroupModal(id) {
     const container = document.getElementById('modalMembersContainer');
     container.innerHTML = '';
 
-    (group.members || []).forEach(m => {
+    const sortedMembers = [...(group.members || [])].sort((a, b) => {
+        if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+        if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+        return 0;
+    });
+
+    sortedMembers.forEach(m => {
         addModalMemberRow(m.role, m.name, m.regNo, m.whatsapp);
     });
+
+    // Show and pre-fill topic section
+    const topicSection = document.getElementById('modalTopicSection');
+    if (topicSection) topicSection.classList.remove('hidden');
+    if (document.getElementById('modalTopicTitle')) document.getElementById('modalTopicTitle').value = (group.topic && group.topic.title) || '';
+    if (document.getElementById('modalTopicDesc')) document.getElementById('modalTopicDesc').value = (group.topic && group.topic.description) || '';
 
     updateModalMembersHeader();
     document.getElementById('groupModalOverlay').classList.remove('hidden');
@@ -989,6 +1018,9 @@ function handleCardRoleChange(select) {
                 }
             }
         });
+
+        // Automatically move the new Team Leader to the first position in the group
+        container.insertBefore(card, container.firstChild);
     }
 
     updateModalCardHeader(card);
@@ -1162,6 +1194,13 @@ async function handleSaveGroup(e) {
                 members[leaderIndices[i]].role = 'Member';
             }
         }
+
+        // Enforce Team Leader is strictly first in members array
+        members.sort((a, b) => {
+            if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+            if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+            return 0;
+        });
     }
 
     if (hasValidationError) {
@@ -1182,13 +1221,19 @@ async function handleSaveGroup(e) {
     try {
         const url = editingGroupId ? `/api/admin/group/${editingGroupId}` : '/api/admin/group';
         const method = editingGroupId ? 'PUT' : 'POST';
+
+        // Collect topic (saves if entered, clears if left blank)
+        const topicTitle = document.getElementById('modalTopicTitle')?.value.trim() || '';
+        const topicDesc = document.getElementById('modalTopicDesc')?.value.trim() || '';
+        const topicPayload = (topicTitle || topicDesc) ? { title: topicTitle, description: topicDesc } : null;
+
         const { ok, data } = await safeFetchJson(url, {
             method,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${adminToken}`
             },
-            body: JSON.stringify({ groupName, type, members })
+            body: JSON.stringify({ groupName, type, members, topic: topicPayload })
         });
 
         if (data && data.success) {
@@ -1387,7 +1432,67 @@ async function confirmDeleteGroup(id) {
 // PDF & DOCX EXPORT SYSTEM (Official Departmental Layout)
 // ============================================
 
-function buildOfficialPdfPagesHtml(groups, totalStudents) {
+// Show topic popup for admin
+function showTopicPopup(groupId) {
+    const group = (currentDb.groups || []).find(g => g.id === groupId);
+    if (!group) return;
+    const topic = group.topic;
+    if (!topic || !topic.title) {
+        Swal.fire({ icon: 'info', title: 'No Topic Set', text: `${group.groupName} has not submitted a project topic yet.`, background: '#1a1f35', color: '#f1f5f9' });
+        return;
+    }
+    Swal.fire({
+        title: `📋 ${escapeHtml(group.groupName)} — Project Topic`,
+        html: `
+            <div style="text-align:left;">
+                <div style="font-size:1.1rem;font-weight:700;color:#c084fc;margin-bottom:10px;">${escapeHtml(topic.title)}</div>
+                <div style="font-size:0.9rem;color:#cbd5e1;line-height:1.7;white-space:pre-wrap;">${escapeHtml(topic.description || '(No description provided)')}</div>
+            </div>
+        `,
+        background: '#1a1f35',
+        color: '#f1f5f9',
+        confirmButtonText: 'Close'
+    });
+}
+
+// Open PDF export options modal
+function generateAndDownloadPDF() {
+    const groups = currentDb.groups || [];
+    if (groups.length === 0) {
+        Swal.fire({ icon: 'info', title: 'No Groups', text: 'No groups available to export.', background: '#1a1f35', color: '#f1f5f9' });
+        return;
+    }
+    // Show/hide topic option based on settings
+    const topicEnabled = currentDb.settings && currentDb.settings.enableTopic;
+    const topicRow = document.getElementById('expColTopicRow');
+    if (topicRow) topicRow.style.display = topicEnabled ? 'flex' : 'none';
+    document.getElementById('pdfExportModalOverlay').classList.remove('hidden');
+}
+
+function closePdfExportModal() {
+    document.getElementById('pdfExportModalOverlay').classList.add('hidden');
+}
+
+function confirmAndExportPDF() {
+    const expCols = {
+        group:    document.getElementById('expColGroup')?.checked ?? true,
+        role:     document.getElementById('expColRole')?.checked ?? true,
+        name:     document.getElementById('expColName')?.checked ?? true,
+        reg:      document.getElementById('expColReg')?.checked ?? true,
+        whatsapp: document.getElementById('expColWhatsapp')?.checked ?? false,
+        topic:    document.getElementById('expColTopic')?.checked ?? false
+    };
+
+    if (!expCols.group && !expCols.name) {
+        Swal.fire({ icon: 'warning', title: 'Select Columns', text: 'At least "Group Name" or "Student Name" must be selected.', background: '#1a1f35', color: '#f1f5f9' });
+        return;
+    }
+
+    closePdfExportModal();
+    _doGeneratePDF(expCols);
+}
+
+function buildOfficialPdfPagesHtml(groups, totalStudents, expCols) {
     // Dynamic group chunking: Ensure page ends with a complete group and next page starts with a group.
     // Page 1 has full university header + metadata box (~250px overhead)
     // Subsequent pages have compact sub-header + table header (~100px overhead)
@@ -1420,6 +1525,17 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
     const totalPages = pages.length;
     let fullHtml = '';
 
+    // Build column headers dynamically
+    const colDefs = [];
+    if (expCols.group)    colDefs.push({ label: 'Group', width: '13%' });
+    if (expCols.role)     colDefs.push({ label: 'Role', width: '14%' });
+    if (expCols.name)     colDefs.push({ label: 'Student Name', width: '' });
+    if (expCols.reg)      colDefs.push({ label: 'Reg No.', width: '18%' });
+    if (expCols.whatsapp) colDefs.push({ label: 'WhatsApp', width: '16%' });
+    if (expCols.topic)    colDefs.push({ label: 'Topic', width: '22%' });
+
+    const theadHtml = colDefs.map(c => `<th style="${c.width ? 'width:' + c.width + ';' : ''}">${c.label}</th>`).join('');
+
     pages.forEach((pageGroups, pageIdx) => {
         const isFirstPage = pageIdx === 0;
         const pageNum = pageIdx + 1;
@@ -1428,18 +1544,34 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
         pageGroups.forEach((group) => {
             const members = group.members || [];
             let hasLeaderAssigned = false;
+            const hasTopic = group.topic && group.topic.title;
+
             members.forEach((member, mIdx) => {
                 const isLeaderRole = member.role === 'Team Leader' || member.role === 'Individual';
                 const isLeader = group.type === 'individual' || (isLeaderRole && !hasLeaderAssigned);
                 if (isLeader) hasLeaderAssigned = true;
 
                 tableRowsHtml += '<tr>';
-                if (mIdx === 0) {
+                if (expCols.group && mIdx === 0) {
+                    const rowspan = expCols.topic ? members.length + 1 : members.length;
                     tableRowsHtml += `<td rowspan="${members.length}" class="pdf-group-cell">${escapeHtml(group.groupName)}</td>`;
                 }
-                tableRowsHtml += `<td class="${isLeader ? 'pdf-role-leader' : 'pdf-role-member'}">${isLeader ? 'Leader' : 'Member'}</td>`;
-                tableRowsHtml += `<td class="${isLeader ? 'pdf-name-leader' : 'pdf-name-member'}">${escapeHtml(member.name)}</td>`;
-                tableRowsHtml += `<td class="pdf-reg-cell">${escapeHtml(member.regNo)}</td>`;
+                if (expCols.role)     tableRowsHtml += `<td class="${isLeader ? 'pdf-role-leader' : 'pdf-role-member'}">${isLeader ? 'Leader' : 'Member'}</td>`;
+                if (expCols.name)     tableRowsHtml += `<td class="${isLeader ? 'pdf-name-leader' : 'pdf-name-member'}">${escapeHtml(member.name)}</td>`;
+                if (expCols.reg)      tableRowsHtml += `<td class="pdf-reg-cell">${escapeHtml(member.regNo)}</td>`;
+                if (expCols.whatsapp) tableRowsHtml += `<td class="pdf-reg-cell" style="font-size:0.85em;">${escapeHtml(member.whatsapp || '')}</td>`;
+                if (expCols.topic && mIdx === 0) {
+                    tableRowsHtml += `<td rowspan="${members.length}" class="pdf-reg-cell" style="font-size:0.82em;vertical-align:top;">`;
+                    if (hasTopic) {
+                        tableRowsHtml += `<strong>${escapeHtml(group.topic.title)}</strong>`;
+                        if (group.topic.description) tableRowsHtml += `<br><span style="color:#555;">${escapeHtml(group.topic.description)}</span>`;
+                    } else {
+                        tableRowsHtml += '<span style="color:#aaa;">—</span>';
+                    }
+                    tableRowsHtml += '</td>';
+                } else if (expCols.topic && mIdx > 0) {
+                    // skip — already rowspanned
+                }
                 tableRowsHtml += '</tr>';
             });
         });
@@ -1483,12 +1615,7 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
 
             <table class="pdf-table">
                 <thead>
-                    <tr>
-                        <th style="width: 15%;">Group</th>
-                        <th style="width: 18%;">Role</th>
-                        <th style="width: 45%;">Student Name</th>
-                        <th style="width: 22%;">Reg No.</th>
-                    </tr>
+                    <tr>${theadHtml}</tr>
                 </thead>
                 <tbody>
                     ${tableRowsHtml}
@@ -1496,7 +1623,7 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
             </table>
 
             <div class="pdf-footer">
-                <span>AICT Lab Registration System &bull; Fall 2026</span>
+                <span>AICT Lab Registration System &bull; ${escapeHtml(pdfSession)}</span>
                 <span>Page ${pageNum} of ${totalPages}</span>
             </div>
         </div>
@@ -1507,13 +1634,8 @@ function buildOfficialPdfPagesHtml(groups, totalStudents) {
     return fullHtml;
 }
 
-function generateAndDownloadPDF() {
+function _doGeneratePDF(expCols) {
     const groups = currentDb.groups || [];
-    if (groups.length === 0) {
-        Swal.fire({ icon: 'info', title: 'No Groups', text: 'No groups available to export.', background: '#1a1f35', color: '#f1f5f9' });
-        return;
-    }
-
     let totalStudents = 0;
     groups.forEach(g => totalStudents += (g.members || []).length);
 
@@ -1524,14 +1646,15 @@ function generateAndDownloadPDF() {
         element.id = 'pdfPage';
         container.appendChild(element);
     }
-    element.innerHTML = buildOfficialPdfPagesHtml(groups, totalStudents);
+    element.innerHTML = buildOfficialPdfPagesHtml(groups, totalStudents, expCols);
 
     // Temporarily bring into viewport under SweetAlert overlay so html2canvas captures properly
     container.classList.add('pdf-rendering');
 
+    const s = currentDb.settings || {};
     const opt = {
         margin: [6, 6, 6, 6],
-        filename: `AICT_Lab_Groups_Official_${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename: `${(s.courseName || 'AICT_Lab_Groups').replace(/[^a-zA-Z0-9_-]/g, '_')}_Official_${new Date().toISOString().slice(0, 10)}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
             scale: 2,

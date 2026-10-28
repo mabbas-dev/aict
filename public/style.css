@@ -1512,3 +1512,113 @@ body {
     border-top: 1px solid #cbd5e1 !important;
 }
 
+/* ============================================
+   TOPIC SECTION - Registration Form
+   ============================================ */
+.topic-section {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(168, 85, 247, 0.05));
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 16px 0;
+    animation: fadeInUp 0.4s ease;
+}
+
+.topic-section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.topic-icon {
+    font-size: 1.6rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.topic-section-header h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #c084fc;
+    margin: 0 0 4px 0;
+}
+
+.topic-section-header p {
+    font-size: 0.83rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.topic-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.topic-fields textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 10px;
+    color: #f1f5f9;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.topic-fields textarea:focus {
+    outline: none;
+    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.topic-fields textarea::placeholder {
+    color: #475569;
+}
+
+/* Group Card Topic Button (public site) */
+.group-topic-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(168, 85, 247, 0.12));
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 20px;
+    color: #d8b4fe;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.3px;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+
+.group-topic-btn:hover {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(168, 85, 247, 0.25));
+    border-color: rgba(192, 132, 252, 0.7);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+}
+
+.group-topic-btn.pending-topic {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    color: #94a3b8;
+    box-shadow: none;
+}
+
+.group-topic-btn.pending-topic:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+
+
+

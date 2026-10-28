@@ -149,6 +149,32 @@
                     <span class="member-count" id="memberCountBadge"></span>
                 </button>
 
+                <!-- Topic Section (shown when enableTopic is active) -->
+                <div class="topic-section hidden" id="topicSection">
+                    <div class="topic-section-header">
+                        <span class="topic-icon">📋</span>
+                        <div>
+                            <h4>Project Topic</h4>
+                            <p>Provide a short title and brief description for your group's project.</p>
+                        </div>
+                    </div>
+                    <div class="topic-fields">
+                        <div class="field-group full-width">
+                            <label for="topicTitle">Topic Title <span style="color:#f87171;">*</span></label>
+                            <input type="text" id="topicTitle" name="topicTitle" maxlength="100"
+                                placeholder="e.g. Smart Attendance System using AI"
+                                autocomplete="off" oninput="this.classList.remove('error')">
+                            <span class="field-error" id="topic_title_error"></span>
+                        </div>
+                        <div class="field-group full-width">
+                            <label for="topicDesc">Topic Description <span style="color:#64748b;font-size:0.8rem;">(optional but recommended)</span></label>
+                            <textarea id="topicDesc" name="topicDesc" rows="3" maxlength="500"
+                                placeholder="Briefly describe what your project is about, the problem it solves, etc."
+                                style="width:100%;resize:vertical;"></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Submit Button -->
                 <button type="submit" class="submit-btn" id="submitBtn">
                     <span class="submit-text">Register</span>

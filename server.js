@@ -62,7 +62,8 @@ const DEFAULT_SETTINGS = {
     allowIndividual: true,
     groupPrefix: "G-",
     announcementNote: "The final revision of groups is made by the instructor.",
-    goodLuckNote: "GOOD LUCK FOR YOUR LABS!"
+    goodLuckNote: "GOOD LUCK FOR YOUR LABS!",
+    enableTopic: false  // When true, students must enter a project topic title & description
 };
 
 // Middleware
@@ -120,7 +121,9 @@ async function ensureMySQLTables() {
                 id INT PRIMARY KEY,
                 group_name VARCHAR(50) NOT NULL,
                 type VARCHAR(20) NOT NULL,
-                registered_at VARCHAR(60) NOT NULL
+                registered_at VARCHAR(60) NOT NULL,
+                topic_title VARCHAR(255) DEFAULT NULL,
+                topic_description TEXT DEFAULT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
@@ -150,6 +153,52 @@ async function ensureMySQLTables() {
         } catch (e) {
             // ignore if already mediumtext
         }
+
+        // Schema migration: Add topic columns if app_groups was created before topic support
+        try {
+            await dbPool.query(`ALTER TABLE app_groups ADD COLUMN topic_title VARCHAR(255) DEFAULT NULL;`);
+        } catch (e) {
+            // column already exists
+        }
+        try {
+            await dbPool.query(`ALTER TABLE app_groups ADD COLUMN topic_description TEXT DEFAULT NULL;`);
+        } catch (e) {
+            // column already exists
+        }
+
+        // Auto-sync existing topics from local db.json if MySQL has no topics set
+        try {
+            const [rowsWithTopic] = await dbPool.query('SELECT COUNT(*) as count FROM app_groups WHERE topic_title IS NOT NULL AND topic_title != ""');
+            if (rowsWithTopic[0].count === 0 && fs.existsSync(DB_FILE)) {
+                const localData = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+                if (localData && Array.isArray(localData.groups)) {
+                    for (const lg of localData.groups) {
+                        if (lg.topic && lg.topic.title) {
+                            await dbPool.query(
+                                'UPDATE app_groups SET topic_title = ?, topic_description = ? WHERE id = ?',
+                                [lg.topic.title.trim(), (lg.topic.description || '').trim(), lg.id]
+                            );
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            // non-fatal topic sync
+        }
+
+        // Reorganize and clean up current database on startup:
+        // Ensures groups are 1 to max without skipped numbers, and Team Leader is first in each group.
+        try {
+            const dbData = await readDBFromMySQL();
+            if (dbData && Array.isArray(dbData.groups) && dbData.groups.length > 0) {
+                reorganizeGroups(dbData);
+                await writeDBToMySQL(dbData);
+                syncLocalFile(dbData);
+                console.log(`Database normalized on startup: ${dbData.groups.length} groups re-indexed 1 to ${dbData.groups.length} with Team Leaders at position 1.`);
+            }
+        } catch (e) {
+            console.error('Initial DB reorganization error:', e.message);
+        }
     } catch (err) {
         console.error('MySQL table verification error:', err.message);
     }
@@ -172,13 +221,20 @@ async function readDBFromMySQL() {
         });
     }
 
-    const groups = groupRows.map(g => ({
-        id: g.id,
-        groupName: g.group_name,
-        type: g.type,
-        members: membersByGroup[g.id] || [],
-        registeredAt: g.registered_at
-    }));
+    const groups = groupRows.map(g => {
+        const hasTopic = (g.topic_title && String(g.topic_title).trim()) || (g.topic_description && String(g.topic_description).trim());
+        return {
+            id: g.id,
+            groupName: g.group_name,
+            type: g.type,
+            members: membersByGroup[g.id] || [],
+            registeredAt: g.registered_at,
+            topic: hasTopic ? {
+                title: g.topic_title ? String(g.topic_title).trim() : '',
+                description: g.topic_description ? String(g.topic_description).trim() : ''
+            } : null
+        };
+    });
 
     let nextGroupId = null;
     let settings = { ...DEFAULT_SETTINGS };
@@ -214,9 +270,12 @@ async function writeDBToMySQL(data) {
         await conn.query('DELETE FROM app_groups');
 
         for (const g of (data.groups || [])) {
+            const topicTitle = (g.topic && g.topic.title) ? String(g.topic.title).trim() : null;
+            const topicDesc = (g.topic && g.topic.description) ? String(g.topic.description).trim() : null;
+
             await conn.query(
-                'INSERT INTO app_groups (id, group_name, type, registered_at) VALUES (?, ?, ?, ?)',
-                [g.id, g.groupName, g.type, g.registeredAt || new Date().toISOString()]
+                'INSERT INTO app_groups (id, group_name, type, registered_at, topic_title, topic_description) VALUES (?, ?, ?, ?, ?, ?)',
+                [g.id, g.groupName, g.type, g.registeredAt || new Date().toISOString(), topicTitle, topicDesc]
             );
             for (const m of (g.members || [])) {
                 await conn.query(
@@ -248,6 +307,7 @@ async function writeDBToMySQL(data) {
         conn.release();
     }
 }
+
 
 function syncLocalFile(data) {
     try {
@@ -297,12 +357,71 @@ async function readDB() {
     }
 }
 
+// Reorganize and re-index groups sequentially from 1 to N with no skipped numbers,
+// and enforce that Team Leader is ALWAYS at index 0 (first in members list).
+function reorganizeGroups(db) {
+    if (!db || !Array.isArray(db.groups)) return db;
+    const prefix = (db.settings && db.settings.groupPrefix) || 'G-';
+    db.groups.forEach((group, index) => {
+        const newId = index + 1;
+        group.id = newId;
+        group.groupName = `${prefix}${newId < 10 ? '0' + newId : newId}`;
+
+        if (group.members && Array.isArray(group.members) && group.members.length > 0) {
+            let leaderFound = false;
+            group.members.forEach(m => {
+                if (group.type === 'individual' || group.members.length === 1) {
+                    m.role = 'Team Leader';
+                    leaderFound = true;
+                } else if (m.role === 'Team Leader') {
+                    if (!leaderFound) {
+                        leaderFound = true;
+                    } else {
+                        m.role = 'Member';
+                    }
+                } else {
+                    m.role = 'Member';
+                }
+            });
+            if (!leaderFound && group.members.length > 0) {
+                group.members[0].role = 'Team Leader';
+            }
+
+            // Put Team Leader first in group.members
+            group.members.sort((a, b) => {
+                if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+                if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+                return 0;
+            });
+        }
+    });
+    db.nextGroupId = db.groups.length + 1;
+    return db;
+}
+
 async function writeDB(data) {
     if (!data.settings) {
         data.settings = { ...DEFAULT_SETTINGS };
     } else {
         data.settings = { ...DEFAULT_SETTINGS, ...data.settings };
     }
+
+    // Always enforce Team Leader is at index 0 in members list
+    if (Array.isArray(data.groups)) {
+        data.groups.forEach(group => {
+            if (group.members && Array.isArray(group.members) && group.members.length > 0) {
+                group.members.sort((a, b) => {
+                    if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+                    if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+                    return 0;
+                });
+                if (group.type === 'individual' || group.members.length === 1) {
+                    group.members[0].role = 'Team Leader';
+                }
+            }
+        });
+    }
+
     memoryCache = data;
     lastCacheTime = Date.now();
 
@@ -431,7 +550,7 @@ app.post(['/api/register', '/register'], async (req, res) => {
             }
         }
 
-        const { type, members } = req.body;
+        const { type, members, topic } = req.body;
         
         if (!type || !members || !Array.isArray(members) || members.length === 0) {
             return res.status(400).json({ success: false, message: 'Invalid data provided.' });
@@ -462,6 +581,13 @@ app.post(['/api/register', '/register'], async (req, res) => {
             }
         } else {
             return res.status(400).json({ success: false, message: 'Invalid registration type.' });
+        }
+
+        // Validate topic if enabled
+        if (settings.enableTopic) {
+            if (!topic || !topic.title || !topic.title.trim()) {
+                return res.status(400).json({ success: false, message: 'Project topic title is required.' });
+            }
         }
         
         for (const member of members) {
@@ -510,6 +636,10 @@ app.post(['/api/register', '/register'], async (req, res) => {
                 ...m,
                 role: (type === 'individual' || members.length === 1) ? 'Team Leader' : (index === 0 ? 'Team Leader' : 'Member')
             })),
+            topic: settings.enableTopic && topic ? {
+                title: topic.title ? topic.title.trim() : '',
+                description: topic.description ? topic.description.trim() : ''
+            } : null,
             registeredAt: new Date().toISOString()
         };
         
@@ -632,6 +762,7 @@ const handleAdminSaveSettings = async (req, res) => {
             deadline: deadline,
             registrationStatus: regStatus,
             allowIndividual: updates.allowIndividual !== undefined ? Boolean(updates.allowIndividual) : current.allowIndividual,
+            enableTopic: updates.enableTopic !== undefined ? Boolean(updates.enableTopic) : (current.enableTopic || false),
             instructorName: updates.instructorName !== undefined ? String(updates.instructorName).trim() : current.instructorName,
             instructorTitle: updates.instructorTitle !== undefined ? String(updates.instructorTitle).trim() : current.instructorTitle,
             className: updates.className !== undefined ? String(updates.className).trim() : current.className,
@@ -659,7 +790,7 @@ app.put(['/api/admin/settings', '/admin/settings'], verifyAdminAuth, handleAdmin
 
 // Admin: Add Group (Bypasses deadline, validates duplicates)
 app.post(['/api/admin/group', '/admin/group'], verifyAdminAuth, async (req, res) => {
-    const { type, groupName, members } = req.body;
+    const { type, groupName, members, topic } = req.body;
     if (!members || !Array.isArray(members) || members.length === 0) {
         return res.status(400).json({ success: false, message: 'At least 1 member is required.' });
     }
@@ -735,11 +866,22 @@ app.post(['/api/admin/group', '/admin/group'], verifyAdminAuth, async (req, res)
             mappedMembers[0].role = 'Team Leader';
         }
 
+        // Enforce Team Leader is strictly first in members list
+        mappedMembers.sort((a, b) => {
+            if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+            if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+            return 0;
+        });
+
         const newGroup = {
             id: groupId,
             groupName: assignedName,
             type: type || (members.length > 1 ? 'team' : 'individual'),
             members: mappedMembers,
+            topic: topic ? {
+                title: topic.title ? String(topic.title).trim() : '',
+                description: topic.description ? String(topic.description).trim() : ''
+            } : null,
             registeredAt: new Date().toISOString()
         };
 
@@ -756,7 +898,7 @@ app.post(['/api/admin/group', '/admin/group'], verifyAdminAuth, async (req, res)
 // Admin: Edit Group (Validates duplicates across other groups)
 app.put(['/api/admin/group/:id', '/admin/group/:id'], verifyAdminAuth, async (req, res) => {
     const groupId = parseInt(req.params.id);
-    const { groupName, type, members } = req.body;
+    const { groupName, type, members, topic } = req.body;
 
     try {
         const db = await readDB();
@@ -837,11 +979,24 @@ app.put(['/api/admin/group/:id', '/admin/group/:id'], verifyAdminAuth, async (re
                 mappedMembers[0].role = 'Team Leader';
             }
 
+            // Enforce Team Leader is strictly first in members list
+            mappedMembers.sort((a, b) => {
+                if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+                if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+                return 0;
+            });
+
             group.members = mappedMembers;
         }
 
         if (groupName) group.groupName = groupName.trim();
         if (type) group.type = type;
+        if (topic !== undefined) {
+            group.topic = topic ? {
+                title: topic.title ? String(topic.title).trim() : '',
+                description: topic.description ? String(topic.description).trim() : ''
+            } : null;
+        }
 
         await writeDB(db);
         res.json({ success: true, message: `${group.groupName} updated successfully!`, group });
@@ -896,7 +1051,22 @@ app.post(['/api/admin/group/:id/member', '/admin/group/:id/member'], verifyAdmin
             role: assignedRole
         };
 
-        group.members.push(newMember);
+        if (assignedRole === 'Team Leader') {
+            for (const m of group.members) {
+                if (m.role === 'Team Leader') m.role = 'Member';
+            }
+            group.members.unshift(newMember);
+        } else {
+            group.members.push(newMember);
+        }
+
+        // Enforce Team Leader is strictly at index 0
+        group.members.sort((a, b) => {
+            if (a.role === 'Team Leader' && b.role !== 'Team Leader') return -1;
+            if (b.role === 'Team Leader' && a.role !== 'Team Leader') return 1;
+            return 0;
+        });
+
         if (group.members.length > 1) {
             group.type = 'team';
         }
@@ -920,9 +1090,10 @@ app.delete(['/api/admin/group/:id', '/admin/group/:id'], verifyAdminAuth, async 
         }
 
         const deleted = db.groups.splice(index, 1);
+        reorganizeGroups(db);
         await writeDB(db);
 
-        res.json({ success: true, message: `${deleted[0].groupName} deleted successfully.` });
+        res.json({ success: true, message: `${deleted[0].groupName} deleted successfully. Groups reorganized from 1 to ${db.groups.length}.` });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error deleting group.' });
     }
@@ -937,9 +1108,10 @@ app.delete(['/api/groups/:id', '/groups/:id'], verifyAdminAuth, async (req, res)
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'Group not found.' });
         }
-        db.groups.splice(index, 1);
+        const deleted = db.groups.splice(index, 1);
+        reorganizeGroups(db);
         await writeDB(db);
-        res.json({ success: true, message: 'Group deleted successfully.' });
+        res.json({ success: true, message: 'Group deleted and groups reorganized from 1 to max successfully.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error deleting group.' });
     }

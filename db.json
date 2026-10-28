@@ -12,7 +12,11 @@
           "role": "Team Leader"
         }
       ],
-      "registeredAt": "2026-10-07T06:44:46.288Z"
+      "registeredAt": "2026-10-07T06:44:46.288Z",
+      "topic": {
+        "title": "tittle",
+        "description": "topic des"
+      }
     },
     {
       "id": 2,
@@ -38,21 +42,41 @@
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-07T10:18:35.434Z"
+      "registeredAt": "2026-10-07T10:18:35.434Z",
+      "topic": {
+        "title": "Automated Student Attendance via Computer Vision",
+        "description": "A lab management platform that utilizes face detection to accurately record student attendance and generate lab session reports."
+      }
     },
     {
       "id": 3,
       "groupName": "G-03",
-      "type": "individual",
+      "type": "team",
       "members": [
         {
-          "name": "Muhammad Abbas",
+          "name": "MUHAMMAD ABBAS",
           "regNo": "5112326015",
           "whatsapp": "03146402311",
           "role": "Team Leader"
+        },
+        {
+          "name": "ADEENA NADEEM",
+          "regNo": "5112326010",
+          "whatsapp": "03440641856",
+          "role": "Member"
+        },
+        {
+          "name": "WAJEEHA SHOUKAT",
+          "regNo": "5112326023",
+          "whatsapp": "03275362353",
+          "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-07T10:22:58.141Z"
+      "registeredAt": "2026-10-07T10:22:58.141Z",
+      "topic": {
+        "title": "IoT-Based Intelligent Lab Automation & Energy Management",
+        "description": "Smart IoT system designed to automate lab equipment monitoring, electrical safety cutoffs, and scheduled PC shutoffs for AICT labs."
+      }
     },
     {
       "id": 4,
@@ -78,7 +102,11 @@
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-10T08:12:08.794Z"
+      "registeredAt": "2026-10-10T08:12:08.794Z",
+      "topic": {
+        "title": "Cloud-Based Collaborative Code Review Tool",
+        "description": "A real-time collaborative platform for peer code reviews in lab assignments."
+      }
     },
     {
       "id": 5,
@@ -92,21 +120,35 @@
           "role": "Team Leader"
         }
       ],
-      "registeredAt": "2026-10-12T06:17:18.265Z"
+      "registeredAt": "2026-10-12T06:17:18.265Z",
+      "topic": null
     },
     {
       "id": 6,
       "groupName": "G-06",
-      "type": "individual",
+      "type": "team",
       "members": [
         {
           "name": "Umar Naseer",
           "regNo": "5112326034",
           "whatsapp": "03400912999",
           "role": "Team Leader"
+        },
+        {
+          "name": "Rayan Imran",
+          "regNo": "5112326054",
+          "whatsapp": "03205710678",
+          "role": "Member"
+        },
+        {
+          "name": "Haider Ali",
+          "regNo": "5112326032",
+          "whatsapp": "03195120779",
+          "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-12T06:19:01.967Z"
+      "registeredAt": "2026-10-12T06:19:01.967Z",
+      "topic": null
     },
     {
       "id": 7,
@@ -132,7 +174,8 @@
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-12T12:25:31.363Z"
+      "registeredAt": "2026-10-12T12:25:31.363Z",
+      "topic": null
     },
     {
       "id": 8,
@@ -152,7 +195,8 @@
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-12T13:05:11.785Z"
+      "registeredAt": "2026-10-12T13:05:11.785Z",
+      "topic": null
     },
     {
       "id": 9,
@@ -170,9 +214,16 @@
           "regNo": "5112326004",
           "whatsapp": "0305 1873834",
           "role": "Member"
+        },
+        {
+          "name": "Dilawar Itfaq Mustafvi",
+          "regNo": "5112326051",
+          "whatsapp": "03169328063",
+          "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-12T16:20:58.355Z"
+      "registeredAt": "2026-10-12T16:20:58.355Z",
+      "topic": null
     },
     {
       "id": 10,
@@ -186,13 +237,14 @@
           "role": "Team Leader"
         },
         {
-          "name": "Rameesha shakeel",
-          "regNo": "5112326173",
-          "whatsapp": "+92 370 5830587",
+          "name": "Summiya Hidayat",
+          "regNo": "5112326047",
+          "whatsapp": "03023501830",
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-13T01:41:22.552Z"
+      "registeredAt": "2026-10-13T01:41:22.552Z",
+      "topic": null
     },
     {
       "id": 11,
@@ -212,21 +264,35 @@
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-13T02:25:21.242Z"
+      "registeredAt": "2026-10-13T02:25:21.242Z",
+      "topic": null
     },
     {
       "id": 12,
       "groupName": "G-12",
-      "type": "individual",
+      "type": "team",
       "members": [
         {
-          "name": "Chaudhary Haider Ali",
-          "regNo": "5112326167",
-          "whatsapp": "03103125813",
+          "name": "AYDA REHMAN",
+          "regNo": "5112326017",
+          "whatsapp": "03119525969",
           "role": "Team Leader"
+        },
+        {
+          "name": "Ukasha bin ubaid",
+          "regNo": "5112326016",
+          "whatsapp": "0337 0158828",
+          "role": "Member"
+        },
+        {
+          "name": "Syeda Fatima Gillani",
+          "regNo": "5112326028",
+          "whatsapp": "0318 8551685",
+          "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-13T02:53:08.351Z"
+      "registeredAt": "2026-10-13T14:22:11.820Z",
+      "topic": null
     },
     {
       "id": 13,
@@ -234,36 +300,236 @@
       "type": "team",
       "members": [
         {
-          "name": "Jaweria Sagheer",
-          "regNo": "5112326027",
-          "whatsapp": "03154634882",
+          "name": "Waqas Ahmed Nazir",
+          "regNo": "5112326175",
+          "whatsapp": "03305280415",
           "role": "Team Leader"
         },
         {
-          "name": "EMAN Fatima",
-          "regNo": "5112326025",
-          "whatsapp": "03259958798",
+          "name": "Chaudhary haider ali",
+          "regNo": "5112326167",
+          "whatsapp": "03103125813",
           "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-13T02:53:55.488Z"
+      "registeredAt": "2026-10-13T14:41:23.042Z",
+      "topic": null
     },
     {
       "id": 14,
       "groupName": "G-14",
-      "type": "individual",
+      "type": "team",
       "members": [
         {
           "name": "Eman Fatima",
-          "regNo": "51123260025",
+          "regNo": "5112326025",
           "whatsapp": "03259958798",
           "role": "Team Leader"
+        },
+        {
+          "name": "Jaweria Sagheer",
+          "regNo": "5112326027",
+          "whatsapp": "03154634882",
+          "role": "Member"
+        },
+        {
+          "name": "Abdal Ahmad",
+          "regNo": "5112326050",
+          "whatsapp": "03459351574",
+          "role": "Member"
         }
       ],
-      "registeredAt": "2026-10-13T03:45:52.416Z"
+      "registeredAt": "2026-10-13T14:45:00.921Z",
+      "topic": null
+    },
+    {
+      "id": 15,
+      "groupName": "G-15",
+      "type": "team",
+      "members": [
+        {
+          "name": "Karamat Ali",
+          "regNo": "5112326039",
+          "whatsapp": "03105273190",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Qaiser Mehmood",
+          "regNo": "5112326040",
+          "whatsapp": "0340 0597211",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-13T15:26:30.738Z",
+      "topic": null
+    },
+    {
+      "id": 16,
+      "groupName": "G-16",
+      "type": "team",
+      "members": [
+        {
+          "name": "Muhammad Abdullah",
+          "regNo": "5112326013",
+          "whatsapp": "03490990002",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Muhammad Hamid Kiani",
+          "regNo": "5112326019",
+          "whatsapp": "0320 8034756",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-13T15:53:04.045Z",
+      "topic": null
+    },
+    {
+      "id": 17,
+      "groupName": "G-17",
+      "type": "team",
+      "members": [
+        {
+          "name": "Areesha shahid",
+          "regNo": "5112326052",
+          "whatsapp": "315 5498458",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Bilal shah",
+          "regNo": "5112326035",
+          "whatsapp": "0318 5227841",
+          "role": "Member"
+        },
+        {
+          "name": "Rameesha shakeel",
+          "regNo": "5112326173",
+          "whatsapp": "03705830587",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-13T19:20:08.793Z",
+      "topic": null
+    },
+    {
+      "id": 18,
+      "groupName": "G-18",
+      "type": "team",
+      "members": [
+        {
+          "name": "Muhammad Bilal Talat",
+          "regNo": "5112326045",
+          "whatsapp": "0336 5822486",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Malik Abdullah Tariq",
+          "regNo": "5112326046",
+          "whatsapp": "03444463454",
+          "role": "Member"
+        },
+        {
+          "name": "Muhammad Tariq",
+          "regNo": "5112326031",
+          "whatsapp": "0323 9732167",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-14T01:51:45.125Z",
+      "topic": null
+    },
+    {
+      "id": 19,
+      "groupName": "G-19",
+      "type": "team",
+      "members": [
+        {
+          "name": "Syed Husnain",
+          "regNo": "5112326024",
+          "whatsapp": "03314050007",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Syed shamir",
+          "regNo": "5112326022",
+          "whatsapp": "03295748225",
+          "role": "Member"
+        },
+        {
+          "name": "Salar Abid",
+          "regNo": "5112326011",
+          "whatsapp": "03105286306",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-14T03:24:50.914Z",
+      "topic": null
+    },
+    {
+      "id": 20,
+      "groupName": "G-20",
+      "type": "team",
+      "members": [
+        {
+          "name": "Abdur razaq",
+          "regNo": "5112326021",
+          "whatsapp": "03710974596",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Muhammad Tabriz",
+          "regNo": "5112326006",
+          "whatsapp": "03235237082",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-14T03:58:13.817Z",
+      "topic": null
+    },
+    {
+      "id": 21,
+      "groupName": "G-21",
+      "type": "team",
+      "members": [
+        {
+          "name": "Auqib junaid",
+          "regNo": "5112326156",
+          "whatsapp": "03169940463",
+          "role": "Team Leader"
+        },
+        {
+          "name": "M Mudasir Hameed Kiani",
+          "regNo": "5112326020",
+          "whatsapp": "03195514191",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-14T16:19:11.852Z",
+      "topic": null
+    },
+    {
+      "id": 22,
+      "groupName": "G-22",
+      "type": "team",
+      "members": [
+        {
+          "name": "Rana Danial Saeed",
+          "regNo": "5112326009",
+          "whatsapp": "03337579581",
+          "role": "Team Leader"
+        },
+        {
+          "name": "Azan Sayyab",
+          "regNo": "5112326053",
+          "whatsapp": "03408487559",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-28T05:00:48.578Z",
+      "topic": null
     }
   ],
-  "nextGroupId": 15,
+  "nextGroupId": 23,
   "settings": {
     "courseName": "AICT LAB — FALL 2026",
     "courseFullName": "Applications of Information & Communication Technologies (AICT) - Lab",
@@ -274,13 +540,14 @@
     "instructorName": "Mis Maira",
     "instructorTitle": "Lab Instructor",
     "crName": "M ABBAS",
-    "deadline": "2026-10-13T09:00:00+05:00",
+    "deadline": "2026-11-04T04:00:00.000Z",
     "registrationStatus": "auto",
     "minMembers": 2,
     "maxMembers": 3,
     "allowIndividual": true,
     "groupPrefix": "G-",
     "announcementNote": "The final revision of groups is made by the instructor.",
-    "goodLuckNote": "GOOD LUCK FOR YOUR LABS!"
+    "goodLuckNote": "GOOD LUCK FOR YOUR LABS!",
+    "enableTopic": true
   }
 }
