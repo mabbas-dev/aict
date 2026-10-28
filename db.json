@@ -527,9 +527,33 @@
       ],
       "registeredAt": "2026-10-28T05:00:48.578Z",
       "topic": null
+    },
+    {
+      "id": 23,
+      "groupName": "G-23",
+      "type": "team",
+      "members": [
+        {
+          "name": "fdds",
+          "regNo": "FSDF",
+          "whatsapp": "855",
+          "role": "Team Leader"
+        },
+        {
+          "name": "sdf",
+          "regNo": "846",
+          "whatsapp": "555",
+          "role": "Member"
+        }
+      ],
+      "registeredAt": "2026-10-28T06:35:57.177Z",
+      "topic": {
+        "title": "TOPIC @@",
+        "description": "TOPIC XX"
+      }
     }
   ],
-  "nextGroupId": 23,
+  "nextGroupId": 24,
   "settings": {
     "courseName": "AICT LAB — FALL 2026",
     "courseFullName": "Applications of Information & Communication Technologies (AICT) - Lab",
